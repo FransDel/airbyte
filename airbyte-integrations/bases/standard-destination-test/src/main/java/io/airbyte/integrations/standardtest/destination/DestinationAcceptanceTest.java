@@ -26,14 +26,14 @@ import io.airbyte.commons.lang.Exceptions;
 import io.airbyte.commons.resources.MoreResources;
 import io.airbyte.commons.string.Strings;
 import io.airbyte.commons.util.MoreIterators;
-import io.airbyte.config.JobGetSpecConfig;
-import io.airbyte.config.OperatorDbt;
-import io.airbyte.config.StandardCheckConnectionInput;
-import io.airbyte.config.StandardCheckConnectionOutput;
-import io.airbyte.config.StandardCheckConnectionOutput.Status;
-import io.airbyte.config.StandardDestinationDefinition;
-import io.airbyte.config.WorkerDestinationConfig;
-import io.airbyte.config.init.LocalDefinitionsProvider;
+import io.airbyte.configoss.JobGetSpecConfig;
+import io.airbyte.configoss.OperatorDbt;
+import io.airbyte.configoss.StandardCheckConnectionInput;
+import io.airbyte.configoss.StandardCheckConnectionOutput;
+import io.airbyte.configoss.StandardCheckConnectionOutput.Status;
+import io.airbyte.configoss.StandardDestinationDefinition;
+import io.airbyte.configoss.WorkerDestinationConfig;
+import io.airbyte.configoss.init.LocalDefinitionsProvider;
 import io.airbyte.integrations.destination.NamingConventionTransformer;
 import io.airbyte.integrations.standardtest.destination.argproviders.DataArgumentsProvider;
 import io.airbyte.integrations.standardtest.destination.argproviders.DataTypeTestArgumentProvider;
@@ -126,11 +126,23 @@ public abstract class DestinationAcceptanceTest {
    */
   protected abstract String getImageName();
 
+  protected boolean supportsInDestinationNormalization() {
+    return false;
+  }
+
+  protected Map<String, String> inDestinationNormalizationFlags(final boolean shouldNormalize) {
+    if (shouldNormalize && supportsInDestinationNormalization()) {
+      return Map.of("NORMALIZATION_TECHNIQUE", "LEGACY");
+    }
+    return Collections.emptyMap();
+  }
+
   private String getImageNameWithoutTag() {
     return getImageName().contains(":") ? getImageName().split(":")[0] : getImageName();
   }
 
-  private Optional<StandardDestinationDefinition> getOptionalDestinationDefinitionFromProvider(final String imageNameWithoutTag) {
+  protected static Optional<StandardDestinationDefinition> getOptionalDestinationDefinitionFromProvider(
+                                                                                                        final String imageNameWithoutTag) {
     final LocalDefinitionsProvider provider = new LocalDefinitionsProvider();
     return provider.getDestinationDefinitions().stream()
         .filter(definition -> imageNameWithoutTag.equalsIgnoreCase(definition.getDockerRepository()))
@@ -138,7 +150,7 @@ public abstract class DestinationAcceptanceTest {
   }
 
   protected String getNormalizationImageName() {
-    return getOptionalDestinationDefinitionFromProvider(getImageNameWithoutTag())
+    return getOptionalDestinationDefinitionFromProvider(getDestinationDefinitionKey())
         .filter(standardDestinationDefinition -> Objects.nonNull(standardDestinationDefinition.getNormalizationConfig()))
         .map(standardDestinationDefinition -> standardDestinationDefinition.getNormalizationConfig().getNormalizationRepository() + ":"
             + NORMALIZATION_VERSION)
@@ -239,8 +251,12 @@ public abstract class DestinationAcceptanceTest {
         .orElse(false);
   }
 
+  protected String getDestinationDefinitionKey() {
+    return getImageNameWithoutTag();
+  }
+
   protected String getNormalizationIntegrationType() {
-    return getOptionalDestinationDefinitionFromProvider(getImageNameWithoutTag())
+    return getOptionalDestinationDefinitionFromProvider(getDestinationDefinitionKey())
         .filter(standardDestinationDefinition -> Objects.nonNull(standardDestinationDefinition.getNormalizationConfig()))
         .map(standardDestinationDefinition -> standardDestinationDefinition.getNormalizationConfig().getNormalizationIntegrationType())
         .orElse(null);
@@ -276,14 +292,6 @@ public abstract class DestinationAcceptanceTest {
     } else {
       return false;
     }
-  }
-
-  /**
-   * Override to return true if a destination implements size limits on record size (then destination
-   * should redefine getMaxRecordValueLimit() too)
-   */
-  protected boolean implementsRecordSizeLimitChecks() {
-    return false;
   }
 
   /**
@@ -630,7 +638,7 @@ public abstract class DestinationAcceptanceTest {
   @Test
   public void testIncrementalSyncWithNormalizationDropOneColumn()
       throws Exception {
-    if (!normalizationFromDefinition()) {
+    if (!normalizationFromDefinition() || !supportIncrementalSchemaChanges()) {
       return;
     }
 
@@ -822,66 +830,6 @@ public abstract class DestinationAcceptanceTest {
     assertSameMessages(expectedMessages, actualMessages, true);
   }
 
-  /**
-   * This test is running a sync using the exchange rate catalog and messages. However it also
-   * generates and adds two extra messages with big records (near the destination limit as defined by
-   * getMaxValueLengthLimit()
-   * <p>
-   * The first big message should be small enough to fit into the destination while the second message
-   * would be too big and fails to replicate.
-   */
-  @Test
-  void testSyncVeryBigRecords() throws Exception {
-    if (!implementsRecordSizeLimitChecks()) {
-      return;
-    }
-
-    final AirbyteCatalog catalog =
-        Jsons.deserialize(
-            MoreResources.readResource(DataArgumentsProvider.EXCHANGE_RATE_CONFIG.getCatalogFileVersion(getProtocolVersion())),
-            AirbyteCatalog.class);
-    final ConfiguredAirbyteCatalog configuredCatalog = CatalogHelpers.toDefaultConfiguredCatalog(
-        catalog);
-    final List<AirbyteMessage> messages = MoreResources.readResource(
-        DataArgumentsProvider.EXCHANGE_RATE_CONFIG.getMessageFileVersion(getProtocolVersion())).lines()
-        .map(record -> Jsons.deserialize(record, AirbyteMessage.class))
-        .collect(Collectors.toList());
-    // Add a big message that barely fits into the limits of the destination
-    messages.add(new AirbyteMessage()
-        .withType(Type.RECORD)
-        .withRecord(new AirbyteRecordMessage()
-            .withStream(catalog.getStreams().get(0).getName())
-            .withEmittedAt(Instant.now().toEpochMilli())
-            .withData(Jsons.jsonNode(ImmutableMap.builder()
-                .put("id", 3)
-                // remove enough characters from max limit to fit the other columns and json characters
-                .put("currency", generateBigString(-150))
-                .put("date", "2020-10-10T00:00:00Z")
-                .put("HKD", 10.5)
-                .put("NZD", 1.14)
-                .build()))));
-    // Add a big message that does not fit into the limits of the destination
-    final AirbyteMessage bigMessage = new AirbyteMessage()
-        .withType(Type.RECORD)
-        .withRecord(new AirbyteRecordMessage()
-            .withStream(catalog.getStreams().get(0).getName())
-            .withEmittedAt(Instant.now().toEpochMilli())
-            .withData(Jsons.jsonNode(ImmutableMap.builder()
-                .put("id", 3)
-                .put("currency", generateBigString(getGenerateBigStringAddExtraCharacters()))
-                .put("date", "2020-10-10T00:00:00Z")
-                .put("HKD", 10.5)
-                .put("NZD", 1.14)
-                .build())));
-    final JsonNode config = getConfig();
-    final String defaultSchema = getDefaultSchema(config);
-    final List<AirbyteMessage> allMessages = new ArrayList<>();
-    allMessages.add(bigMessage);
-    allMessages.addAll(messages);
-    runSyncAndVerifyStateOutput(config, allMessages, configuredCatalog, false);
-    retrieveRawRecordsAndAssertSameMessages(catalog, messages, defaultSchema);
-  }
-
   private String generateBigString(final int addExtraCharacters) {
     final int length = getMaxRecordValueLimit() + addExtraCharacters;
     return RANDOM
@@ -1065,11 +1013,11 @@ public abstract class DestinationAcceptanceTest {
         Jsons.deserialize(
             MoreResources.readResource(DataArgumentsProvider.EXCHANGE_RATE_CONFIG.getCatalogFileVersion(getProtocolVersion())),
             AirbyteCatalog.class);
-    final var namespace1 = "sourcenamespace";
+    final var namespace1 = Strings.addRandomSuffix("sourcenamespace", "_", 8);
     catalog.getStreams().forEach(stream -> stream.setNamespace(namespace1));
 
     final var diffNamespaceStreams = new ArrayList<AirbyteStream>();
-    final var namespace2 = "diff_source_namespace";
+    final var namespace2 = Strings.addRandomSuffix("diff_sourcenamespace", "_", 8);;
     final var mapper = MoreMappers.initMapper();
     for (final AirbyteStream stream : catalog.getStreams()) {
       final var clonedStream = mapper.readValue(mapper.writeValueAsString(stream),
@@ -1335,7 +1283,7 @@ public abstract class DestinationAcceptanceTest {
 
     final AirbyteDestination destination = getDestination();
 
-    destination.start(destinationConfig, jobRoot);
+    destination.start(destinationConfig, jobRoot, inDestinationNormalizationFlags(runNormalization));
     messages.forEach(
         message -> Exceptions.toRuntime(() -> destination.accept(convertProtocolObject(message, io.airbyte.protocol.models.AirbyteMessage.class))));
     destination.notifyEndOfInput();
@@ -1347,7 +1295,7 @@ public abstract class DestinationAcceptanceTest {
 
     destination.close();
 
-    if (!runNormalization) {
+    if (!runNormalization || (runNormalization && supportsInDestinationNormalization())) {
       return destinationOutput;
     }
 
@@ -1430,7 +1378,7 @@ public abstract class DestinationAcceptanceTest {
    * @param record - record that will be pruned.
    * @return pruned json node.
    */
-  private AirbyteRecordMessage safePrune(final AirbyteRecordMessage record) {
+  private static AirbyteRecordMessage safePrune(final AirbyteRecordMessage record) {
     final AirbyteRecordMessage clone = Jsons.clone(record);
     pruneMutate(clone.getData());
     return clone;
@@ -1443,7 +1391,7 @@ public abstract class DestinationAcceptanceTest {
    *
    * @param json - json that will be pruned. will be mutated in place!
    */
-  private void pruneMutate(final JsonNode json) {
+  private static void pruneMutate(final JsonNode json) {
     for (final String key : Jsons.keys(json)) {
       final JsonNode node = json.get(key);
       // recursively prune all airbyte internal fields.
@@ -1538,7 +1486,7 @@ public abstract class DestinationAcceptanceTest {
     final AirbyteDestination destination = getDestination();
 
     // Start destination
-    destination.start(destinationConfig, jobRoot);
+    destination.start(destinationConfig, jobRoot, Collections.emptyMap());
 
     final AtomicInteger currentStreamNumber = new AtomicInteger(0);
     final AtomicInteger currentRecordNumberForStream = new AtomicInteger(0);
@@ -1634,6 +1582,10 @@ public abstract class DestinationAcceptanceTest {
     return false;
   }
 
+  protected boolean supportIncrementalSchemaChanges() {
+    return false;
+  }
+
   /**
    * NaN and Infinity test are not supported by default. Please override this method to specify
    * NaN/Infinity types support example:
@@ -1650,7 +1602,7 @@ public abstract class DestinationAcceptanceTest {
    *
    * @return SpecialNumericTypes with support flags
    */
-  protected SpecialNumericTypes getSpecialNumericTypesSupportTest() {
+  protected static SpecialNumericTypes getSpecialNumericTypesSupportTest() {
     return SpecialNumericTypes.builder().build();
   }
 
@@ -1765,11 +1717,11 @@ public abstract class DestinationAcceptanceTest {
     }
   }
 
-  private AirbyteCatalog readCatalogFromFile(final String catalogFilename) throws IOException {
+  private static AirbyteCatalog readCatalogFromFile(final String catalogFilename) throws IOException {
     return Jsons.deserialize(MoreResources.readResource(catalogFilename), AirbyteCatalog.class);
   }
 
-  private List<AirbyteMessage> readMessagesFromFile(final String messagesFilename)
+  private static List<AirbyteMessage> readMessagesFromFile(final String messagesFilename)
       throws IOException {
     return MoreResources.readResource(messagesFilename).lines()
         .map(record -> Jsons.deserialize(record, AirbyteMessage.class))

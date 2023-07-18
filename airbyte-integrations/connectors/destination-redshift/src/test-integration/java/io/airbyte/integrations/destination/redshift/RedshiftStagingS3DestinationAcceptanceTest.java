@@ -161,6 +161,11 @@ public abstract class RedshiftStagingS3DestinationAcceptanceTest extends JdbcDes
   }
 
   @Override
+  protected boolean supportIncrementalSchemaChanges() {
+    return true;
+  }
+
+  @Override
   protected List<JsonNode> retrieveRecords(final TestDestinationEnv env,
                                            final String streamName,
                                            final String namespace,
@@ -235,11 +240,6 @@ public abstract class RedshiftStagingS3DestinationAcceptanceTest extends JdbcDes
 
   public RedshiftSQLNameTransformer getNamingResolver() {
     return namingResolver;
-  }
-
-  @Override
-  protected boolean implementsRecordSizeLimitChecks() {
-    return true;
   }
 
   @Override

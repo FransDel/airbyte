@@ -5,6 +5,7 @@
 package io.airbyte.integrations.source.relationaldb;
 
 import static io.airbyte.protocol.models.v0.CatalogHelpers.fieldsToJsonSchema;
+import static java.util.stream.Collectors.toList;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Lists;
@@ -17,6 +18,8 @@ import io.airbyte.protocol.models.v0.CatalogHelpers;
 import io.airbyte.protocol.models.v0.ConfiguredAirbyteCatalog;
 import io.airbyte.protocol.models.v0.ConfiguredAirbyteStream;
 import io.airbyte.protocol.models.v0.SyncMode;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -32,9 +35,15 @@ import org.slf4j.LoggerFactory;
 public class DbSourceDiscoverUtil {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DbSourceDiscoverUtil.class);
+  private static final List<String> AIRBYTE_METADATA = Arrays.asList("_ab_cdc_lsn",
+      "_ab_cdc_updated_at",
+      "_ab_cdc_deleted_at");
 
-  // In case of user manually modified source table schema but did not refresh it and save into the
-  // catalog - it can lead to sync failure. This method compare actual schema vs catalog schema
+  /*
+   * This method logs schema drift between source table and the catalog. This can happen if (i)
+   * underlying table schema changed between syncs (ii) The source connector's mapping of datatypes to
+   * Airbyte types changed between runs
+   */
   public static <DataType> void logSourceSchemaChange(final Map<String, TableInfo<CommonField<DataType>>> fullyQualifiedTableNameToInfo,
                                                       final ConfiguredAirbyteCatalog catalog,
                                                       final Function<DataType, JsonSchemaType> airbyteTypeConverter) {
@@ -50,14 +59,30 @@ public class DbSourceDiscoverUtil {
           .stream()
           .map(commonField -> toField(commonField, airbyteTypeConverter))
           .distinct()
-          .collect(Collectors.toList());
+          .collect(toList());
       final JsonNode currentJsonSchema = fieldsToJsonSchema(fields);
-
       final JsonNode catalogSchema = stream.getJsonSchema();
-      if (!catalogSchema.equals(currentJsonSchema)) {
+      final JsonNode currentSchemaProperties = currentJsonSchema.get("properties");
+      final JsonNode catalogProperties = catalogSchema.get("properties");
+      final List<String> mismatchedFields = new ArrayList<>();
+      catalogProperties.fieldNames().forEachRemaining(fieldName -> {
+        // Ignoring metadata fields since those are automatically added onto the catalog schema by Airbyte
+        // and don't exist in the source schema. They should not be considered a change
+        if (AIRBYTE_METADATA.contains(fieldName)) {
+          return;
+        }
+
+        if (!currentSchemaProperties.has(fieldName) ||
+            !currentSchemaProperties.get(fieldName).equals(catalogProperties.get(fieldName))) {
+          mismatchedFields.add(fieldName);
+        }
+      });
+
+      if (!mismatchedFields.isEmpty()) {
         LOGGER.warn(
-            "Source schema changed for table  {}! Actual schema: {}. Catalog schema:  {}",
+            "Source schema changed for table {}! Potential mismatches: {}. Actual schema: {}. Catalog schema: {}",
             fullyQualifiedTableName,
+            String.join(", ", mismatchedFields.toString()),
             currentJsonSchema,
             catalogSchema);
       }
@@ -77,7 +102,7 @@ public class DbSourceDiscoverUtil {
               .stream()
               .map(commonField -> toField(commonField, airbyteTypeConverter))
               .distinct()
-              .collect(Collectors.toList());
+              .collect(toList());
           final String fullyQualifiedTableName = getFullyQualifiedTableName(t.getNameSpace(),
               t.getName());
           final List<String> primaryKeys = fullyQualifiedTableNameToPrimaryKeys.getOrDefault(
@@ -88,14 +113,14 @@ public class DbSourceDiscoverUtil {
               .cursorFields(t.getCursorFields())
               .build();
         })
-        .collect(Collectors.toList());
+        .collect(toList());
 
     final List<AirbyteStream> streams = tableInfoFieldList.stream()
         .map(tableInfo -> {
           final var primaryKeys = tableInfo.getPrimaryKeys().stream()
               .filter(Objects::nonNull)
               .map(Collections::singletonList)
-              .collect(Collectors.toList());
+              .collect(toList());
 
           return CatalogHelpers
               .createAirbyteStream(tableInfo.getName(), tableInfo.getNameSpace(),
@@ -106,7 +131,7 @@ public class DbSourceDiscoverUtil {
                       : Lists.newArrayList(SyncMode.FULL_REFRESH, SyncMode.INCREMENTAL))
               .withSourceDefinedPrimaryKey(primaryKeys);
         })
-        .collect(Collectors.toList());
+        .collect(toList());
     return new AirbyteCatalog().withStreams(streams);
   }
 
