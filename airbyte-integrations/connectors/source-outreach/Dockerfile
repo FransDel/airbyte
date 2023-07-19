@@ -12,6 +12,7 @@ RUN apk --no-cache upgrade \
 
 COPY setup.py ./
 # install necessary packages to a temporary folder
+RUN pip install "cython<3.0.0" wheel && pip install pyyaml==5.4.1 --no-build-isolation
 RUN pip install --prefix=/install .
 
 # build a clean environment
