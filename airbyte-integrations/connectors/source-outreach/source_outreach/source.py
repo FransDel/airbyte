@@ -22,15 +22,16 @@ _URL_BASE = "https://api.outreach.io/api/v2/"
 class OutreachStream(HttpStream, ABC):
     url_base = _URL_BASE
     primary_key = "id"
-    page_size = 1000
 
     def __init__(
         self,
         authenticator: HttpAuthenticator,
         start_date: str = None,
+        page_size: int = 100,
         **kwargs,
     ):
         self.start_date = start_date
+        self.page_size = page_size
         super().__init__(authenticator=authenticator)
 
     def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
@@ -39,11 +40,13 @@ class OutreachStream(HttpStream, ABC):
         It uses cursor-based pagination, by sending the 'page[size]' and 'page[after]' parameters.
         """
         try:
-            next_page_url = response.json().get("links").get("next")
+            next_page_url = response.json().get("links", {}).get("next")
+            if not next_page_url:  # When there are no next link it means that we can stop here
+                return None
             params = parse.parse_qs(parse.urlparse(next_page_url).query)
-            if not params or "page[after]" not in params:
+            if not params or "page[offset]" not in params:
                 return {}
-            return {"after": params["page[after]"][0]}
+            return {"offset": params["page[offset]"][0]}
         except Exception as e:
             raise KeyError(f"error parsing next_page token: {e}")
 
@@ -51,8 +54,8 @@ class OutreachStream(HttpStream, ABC):
         self, stream_state: Mapping[str, Any], stream_slice: Mapping[str, any] = None, next_page_token: Mapping[str, Any] = None
     ) -> MutableMapping[str, Any]:
         params = {"page[size]": self.page_size, "count": "false", "sort": "updatedAt"}
-        if next_page_token and "after" in next_page_token:
-            params["page[after]"] = next_page_token["after"]
+        if next_page_token and "offset" in next_page_token:
+            params["page[offset]"] = next_page_token["offset"]
         return params
 
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
