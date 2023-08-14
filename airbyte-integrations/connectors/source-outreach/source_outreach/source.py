@@ -44,9 +44,12 @@ class OutreachStream(HttpStream, ABC):
             if not next_page_url:  # When there are no next link it means that we can stop here
                 return None
             params = parse.parse_qs(parse.urlparse(next_page_url).query)
-            if not params or "page[offset]" not in params:
+            if not params or ("page[after]" not in params and "page[offset]" not in params):
                 return {}
-            return {"offset": params["page[offset]"][0]}
+            if "page[after]" in params:
+                return {"after": params["page[after]"][0]}
+            if "page[offset]" in params:
+                return {"offset": params["page[offset]"][0]}
         except Exception as e:
             raise KeyError(f"error parsing next_page token: {e}")
 
@@ -54,7 +57,9 @@ class OutreachStream(HttpStream, ABC):
         self, stream_state: Mapping[str, Any], stream_slice: Mapping[str, any] = None, next_page_token: Mapping[str, Any] = None
     ) -> MutableMapping[str, Any]:
         params = {"page[size]": self.page_size, "count": "false", "sort": "updatedAt"}
-        if next_page_token and "offset" in next_page_token:
+        if next_page_token and "after" in next_page_token:
+            params["page[after]"] = next_page_token["after"]
+        if next_page_token and "offset" in next_page_token and "after" not in next_page_token:
             params["page[offset]"] = next_page_token["offset"]
         return params
 
