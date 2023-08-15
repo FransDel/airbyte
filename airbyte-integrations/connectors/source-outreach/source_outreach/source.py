@@ -49,6 +49,8 @@ class OutreachStream(HttpStream, ABC):
             if "page[after]" in params:
                 return {"after": params["page[after]"][0]}
             if "page[offset]" in params:
+                if int(params["page[offset]"][0]) > 10000:
+                    return {}
                 return {"offset": params["page[offset]"][0]}
         except Exception as e:
             raise KeyError(f"error parsing next_page token: {e}")
