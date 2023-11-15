@@ -1,7 +1,10 @@
 #
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
+import datetime
 
+import traceback
+import inspect
 
 from abc import ABC
 from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Optional, Tuple
@@ -63,6 +66,7 @@ class OutreachStream(HttpStream, ABC):
             params["page[after]"] = next_page_token["after"]
         if next_page_token and "offset" in next_page_token and "after" not in next_page_token:
             params["page[offset]"] = next_page_token["offset"]
+
         return params
 
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
@@ -105,6 +109,16 @@ class IncrementalOutreachStream(OutreachStream, ABC):
         params = super().request_params(stream_state=stream_state, stream_slice=stream_slice, next_page_token=next_page_token)
         if self.cursor_field in stream_state:
             params[f"filter[{self.cursor_field}]"] = stream_state[self.cursor_field] + "..inf"
+
+        else:
+            # This is horrible but there is no info coming in to give the info if we are
+            # checking or not the availability. So we need to check the stack to see if we are in
+            # the check_availability function.
+            stack = inspect.stack()
+            function_names = [frame[3] for frame in stack]
+            if "check_availability" in function_names:
+                params[f"filter[{self.cursor_field}]"] = datetime.date.today().isoformat() + "..inf"
+
         return params
 
 
