@@ -101,7 +101,12 @@ class IncrementalOutreachStream(OutreachStream, ABC):
         current_stream_state_date = current_stream_state.get(self.cursor_field, self.start_date)
         latest_record_date = latest_record.get(self.cursor_field, self.start_date)
 
-        return {self.cursor_field: max(current_stream_state_date, latest_record_date)}
+        return {
+            self.cursor_field: (
+                datetime.datetime.strptime(max(current_stream_state_date, latest_record_date), "%Y-%m-%dT%H:%M:%S.%fZ")
+                - datetime.timedelta(days=1)
+            ).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+        }
 
     def request_params(
         self, stream_state: Mapping[str, Any], stream_slice: Mapping[str, any] = None, next_page_token: Mapping[str, Any] = None
