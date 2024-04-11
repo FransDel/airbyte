@@ -46,6 +46,8 @@ class OutreachStream(HttpStream, ABC):
             next_page_url = response.json().get("links", {}).get("next")
             if not next_page_url:  # When there are no next link it means that we can stop here
                 return None
+
+            # logging.info(f"Next page: {next_page_url}")
             params = parse.parse_qs(parse.urlparse(next_page_url).query)
             if not params or ("page[after]" not in params and "page[offset]" not in params):
                 return {}
