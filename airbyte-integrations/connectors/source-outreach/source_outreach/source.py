@@ -5,7 +5,6 @@ import logging
 
 import datetime
 
-import traceback
 import inspect
 
 from abc import ABC
@@ -50,7 +49,7 @@ class OutreachStream(HttpStream, ABC):
                 return None
 
             logging.info(f"Next page: {next_page_url}")
-            print(f"Next page: {next_page_url}")
+
             params = parse.parse_qs(parse.urlparse(next_page_url).query)
             if not params or ("page[after]" not in params and "page[offset]" not in params):
                 return {}
