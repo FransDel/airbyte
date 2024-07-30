@@ -16,7 +16,10 @@ import requests
 from pipelines import main_logger
 from pipelines.cli.confirm_prompt import confirm
 from pipelines.consts import LOCAL_PIPELINE_PACKAGE_PATH
-from pipelines.external_scripts.airbyte_ci_install import RELEASE_URL, get_airbyte_os_name
+from pipelines.external_scripts.airbyte_ci_install import (
+    RELEASE_URL,
+    get_airbyte_os_name,
+)
 
 if TYPE_CHECKING:
     from typing import Callable
@@ -65,7 +68,9 @@ def _get_latest_version() -> str:
         for line in f.readlines():
             if "version" in line:
                 return line.split("=")[1].strip().replace('"', "")
-    raise Exception("Could not find version in pyproject.toml. Please ensure you are running from the root of the airbyte repo.")
+    raise Exception(
+        "Could not find version in pyproject.toml. Please ensure you are running from the root of the airbyte repo."
+    )
 
 
 def is_dev_command() -> bool:
@@ -85,7 +90,9 @@ def check_for_upgrade(
     latest_version = _get_latest_version()
     is_out_of_date = latest_version != __installed_version__
     if not is_out_of_date:
-        main_logger.info(f"airbyte-ci is up to date. Installed version: {__installed_version__}. Latest version: {latest_version}")
+        main_logger.info(
+            f"airbyte-ci is up to date. Installed version: {__installed_version__}. Latest version: {latest_version}"
+        )
         return
 
     is_dev_version = is_dev_command()
@@ -123,14 +130,20 @@ def check_for_upgrade(
 
     # Ask the user if they want to upgrade
     if enable_auto_update and confirm(
-        "Do you want to automatically upgrade?", default=True, additional_pre_confirm_key=AUTO_UPDATE_AGREE_KEY
+        "Do you want to automatically upgrade?",
+        default=True,
+        additional_pre_confirm_key=AUTO_UPDATE_AGREE_KEY,
     ):
         # if the current command contains `airbyte-ci-dev` is the dev version of the command
-        logging.info(f"[{'DEV' if is_dev_version else 'BINARY'}] Upgrading pipelines...")
+        logging.info(
+            f"[{'DEV' if is_dev_version else 'BINARY'}] Upgrading pipelines..."
+        )
 
         upgrade_exit_code = os.system(upgrade_command)
         if upgrade_exit_code != 0:
-            raise Exception(f"Failed to upgrade pipelines. Exit code: {upgrade_exit_code}")
+            raise Exception(
+                f"Failed to upgrade pipelines. Exit code: {upgrade_exit_code}"
+            )
 
         logging.info(f"Re-running command: {current_command}")
 

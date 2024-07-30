@@ -9,7 +9,13 @@ from typing import TYPE_CHECKING, Optional, Union
 
 import docker  # type: ignore
 import pytest
-from airbyte_protocol.models import AirbyteCatalog, AirbyteMessage, ConnectorSpecification, Status, Type  # type: ignore
+from airbyte_protocol.models import (
+    AirbyteCatalog,
+    AirbyteMessage,
+    ConnectorSpecification,
+    Status,
+    Type,
+)  # type: ignore
 from deepdiff import DeepDiff  # type: ignore
 from live_tests import stash_keys
 from live_tests.commons.models import ExecutionResult
@@ -33,7 +39,9 @@ def filter_records(messages: Iterable[AirbyteMessage]) -> Iterable[AirbyteMessag
             yield message
 
 
-def write_string_to_test_artifact(request: SubRequest, content: str, filename: str, subdir: Optional[Path] = None) -> Path:
+def write_string_to_test_artifact(
+    request: SubRequest, content: str, filename: str, subdir: Optional[Path] = None
+) -> Path:
     test_artifact_directory = request.config.stash[stash_keys.TEST_ARTIFACT_DIRECTORY]
     if subdir:
         test_artifact_directory = test_artifact_directory / subdir
@@ -64,7 +72,9 @@ def get_and_write_diff(
         parsed_diff = json.loads(diff_json)
         formatted_diff_json = json.dumps(parsed_diff, indent=2)
 
-        diff_path_tree = write_string_to_test_artifact(request, str(diff.tree), f"{filepath}_tree.txt", subdir=request.node.name)
+        diff_path_tree = write_string_to_test_artifact(
+            request, str(diff.tree), f"{filepath}_tree.txt", subdir=request.node.name
+        )
         diff_path_text = write_string_to_test_artifact(
             request,
             formatted_diff_json,
@@ -78,7 +88,9 @@ def get_and_write_diff(
             subdir=request.node.name,
         )
 
-        logger.info(f"Diff file are stored in {diff_path_tree}, {diff_path_text}, and {diff_path_pretty}.")
+        logger.info(
+            f"Diff file are stored in {diff_path_tree}, {diff_path_text}, and {diff_path_pretty}."
+        )
         if len(diff_json.encode("utf-8")) < MAX_DIFF_SIZE_FOR_LOGGING:
             logger.error(formatted_diff_json)
 
@@ -86,7 +98,9 @@ def get_and_write_diff(
     return ""
 
 
-def fail_test_on_failing_execution_results(record_property: Callable, execution_results: list[ExecutionResult]) -> None:
+def fail_test_on_failing_execution_results(
+    record_property: Callable, execution_results: list[ExecutionResult]
+) -> None:
     error_messages = []
     for execution_result in execution_results:
         if not execution_result.success:
@@ -128,17 +142,26 @@ def tail_file(file_path: Path, n: int = MAX_LINES_IN_REPORT) -> list[str]:
 
 def is_successful_check(execution_result: ExecutionResult) -> bool:
     for message in execution_result.airbyte_messages:
-        if message.type is Type.CONNECTION_STATUS and message.connectionStatus.status is Status.SUCCEEDED:
+        if (
+            message.type is Type.CONNECTION_STATUS
+            and message.connectionStatus.status is Status.SUCCEEDED
+        ):
             return True
     return False
 
 
 def get_catalog(execution_result: ExecutionResult) -> AirbyteCatalog:
-    catalog = [m.catalog for m in execution_result.airbyte_messages if m.type is Type.CATALOG and m.catalog]
+    catalog = [
+        m.catalog
+        for m in execution_result.airbyte_messages
+        if m.type is Type.CATALOG and m.catalog
+    ]
     try:
         return catalog[0]
     except ValueError:
-        raise ValueError(f"Expected exactly one catalog in the execution result, but got {len(catalog)}.")
+        raise ValueError(
+            f"Expected exactly one catalog in the execution result, but got {len(catalog)}."
+        )
 
 
 def get_spec(execution_result: ExecutionResult) -> ConnectorSpecification:
@@ -146,7 +169,9 @@ def get_spec(execution_result: ExecutionResult) -> ConnectorSpecification:
     try:
         return spec[0]
     except ValueError:
-        raise ValueError(f"Expected exactly one spec in the execution result, but got {len(spec)}.")
+        raise ValueError(
+            f"Expected exactly one spec in the execution result, but got {len(spec)}."
+        )
 
 
 def find_all_values_for_key_in_schema(schema: dict, searched_key: str):

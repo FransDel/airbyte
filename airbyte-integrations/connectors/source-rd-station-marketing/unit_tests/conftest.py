@@ -31,29 +31,33 @@ def auth_url():
 def segmentations_url():
     return "https://api.rd.services/platform/segmentations"
 
+
 @fixture
 def analytics_conversions_url():
     return "https://api.rd.services/platform/analytics/conversions"
 
+
 @fixture
 def mock_segmentations_response():
-    return {
-        "segmentations": [
-            {
-                "id": 71625167165,
-                "name": "A mock segmentation",
-                "standard": True,
-                "created_at": "2019-09-04T18:05:42.638-03:00",
-                "updated_at": "2019-09-04T18:05:42.638-03:00",
-                "process_status": "processed",
-                "links": [
-                    {
-                        "rel": "SEGMENTATIONS.CONTACTS",
-                        "href": "https://api.rd.services/platform/segmentations/71625167165/contacts",
-                        "media": "application/json",
-                        "type": "GET",
-                    }
-                ],
-            }
-        ]
-    },
+    return (
+        {
+            "segmentations": [
+                {
+                    "id": 71625167165,
+                    "name": "A mock segmentation",
+                    "standard": True,
+                    "created_at": "2019-09-04T18:05:42.638-03:00",
+                    "updated_at": "2019-09-04T18:05:42.638-03:00",
+                    "process_status": "processed",
+                    "links": [
+                        {
+                            "rel": "SEGMENTATIONS.CONTACTS",
+                            "href": "https://api.rd.services/platform/segmentations/71625167165/contacts",
+                            "media": "application/json",
+                            "type": "GET",
+                        }
+                    ],
+                }
+            ]
+        },
+    )

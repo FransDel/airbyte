@@ -33,7 +33,7 @@ SOME_BACKOFF_TIME = 60
                 response_action=ResponseAction.SUCCESS,
                 failure_type=None,
                 error_message=None,
-            )
+            ),
         ),
         (
             "test_chain_retrier_ignore_fail",
@@ -82,7 +82,7 @@ SOME_BACKOFF_TIME = 60
             ErrorResolution(
                 response_action=ResponseAction.IGNORE,
             ),
-        )
+        ),
     ],
 )
 def test_composite_error_handler(test_name, first_handler_behavior, second_handler_behavior, expected_behavior):

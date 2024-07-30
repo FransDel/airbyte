@@ -31,7 +31,7 @@ def test_request_params(config_pass):
 def test_request_headers(config_pass):
     assignments = get_stream_by_name("assignments", config_pass)
     expected_headers = {}
-    assert assignments.retriever.requester.get_request_headers() == expected_headers 
+    assert assignments.retriever.requester.get_request_headers() == expected_headers
 
 
 def test_http_method(config_pass):
@@ -50,4 +50,4 @@ def test_should_retry(requests_mock, assignments_url, config_pass, auth_url, aut
     for stream_slice in stream.stream_slices(sync_mode=SyncMode.full_refresh):
         records.extend(list(stream.read_records(sync_mode=SyncMode.full_refresh, stream_slice=stream_slice)))
     assert records == []
-    assert requests_mock.call_count == 2 
+    assert requests_mock.call_count == 2

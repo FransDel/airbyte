@@ -77,12 +77,7 @@ def test_streams():
         ["global_suppressions", "https://api.sendgrid.com/v3/suppression/unsubscribes", ["name", "id", "contact_count", "_metadata"]],
     ),
 )
-def test_read_records(
-    stream_name,
-    url,
-    expected,
-    requests_mock
-):
+def test_read_records(stream_name, url, expected, requests_mock):
     requests_mock.get("https://api.sendgrid.com/v3/marketing/contacts/exports", json={})
     stream = find_stream(stream_name)
     requests_mock.get("https://api.sendgrid.com/v3/marketing", json={})

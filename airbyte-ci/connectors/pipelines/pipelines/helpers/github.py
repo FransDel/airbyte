@@ -25,7 +25,9 @@ if TYPE_CHECKING:
 
 DEFAULT_AIRBYTE_GITHUB_REPO = "airbytehq/airbyte"
 AIRBYTE_GITHUB_REPO = os.environ.get("AIRBYTE_GITHUB_REPO", DEFAULT_AIRBYTE_GITHUB_REPO)
-AIRBYTE_GITHUBUSERCONTENT_URL_PREFIX = f"https://raw.githubusercontent.com/{AIRBYTE_GITHUB_REPO}"
+AIRBYTE_GITHUBUSERCONTENT_URL_PREFIX = (
+    f"https://raw.githubusercontent.com/{AIRBYTE_GITHUB_REPO}"
+)
 AIRBYTE_GITHUB_REPO_URL_PREFIX = f"https://github.com/{AIRBYTE_GITHUB_REPO}"
 AIRBYTE_GITHUB_REPO_URL = f"{AIRBYTE_GITHUB_REPO_URL_PREFIX}.git"
 BASE_BRANCH = "master"
@@ -64,13 +66,21 @@ def update_commit_status_check(
     if not should_send:
         return
 
-    safe_log(logger, f"Attempting to create {state} status for commit {sha} on Github in {context} context.")
+    safe_log(
+        logger,
+        f"Attempting to create {state} status for commit {sha} on Github in {context} context.",
+    )
     try:
-        github_client = github_sdk.Github(auth=github_sdk.Auth.Token(os.environ["CI_GITHUB_ACCESS_TOKEN"]))
+        github_client = github_sdk.Github(
+            auth=github_sdk.Auth.Token(os.environ["CI_GITHUB_ACCESS_TOKEN"])
+        )
         airbyte_repo = github_client.get_repo(AIRBYTE_GITHUB_REPO)
     except Exception as e:
         if logger:
-            logger.error("No commit status check sent, the connection to Github API failed", exc_info=True)
+            logger.error(
+                "No commit status check sent, the connection to Github API failed",
+                exc_info=True,
+            )
         else:
             console.print(e)
         return
@@ -82,17 +92,26 @@ def update_commit_status_check(
         state = "success"
         description = f"[WARNING] optional check failed {context}: {description}"
 
-    context = context if bool(os.environ.get("PRODUCTION", False)) is True else f"[please ignore] {context}"
+    context = (
+        context
+        if bool(os.environ.get("PRODUCTION", False)) is True
+        else f"[please ignore] {context}"
+    )
     airbyte_repo.get_commit(sha=sha).create_status(
         state=state,
         target_url=target_url,
         description=description,
         context=context,
     )
-    safe_log(logger, f"Created {state} status for commit {sha} on Github in {context} context with desc: {description}.")
+    safe_log(
+        logger,
+        f"Created {state} status for commit {sha} on Github in {context} context with desc: {description}.",
+    )
 
 
-def get_pull_request(pull_request_number: int, github_access_token: Secret) -> github_sdk.PullRequest.PullRequest:
+def get_pull_request(
+    pull_request_number: int, github_access_token: Secret
+) -> github_sdk.PullRequest.PullRequest:
     """Get a pull request object from its number.
 
     Args:
@@ -101,13 +120,16 @@ def get_pull_request(pull_request_number: int, github_access_token: Secret) -> g
     Returns:
         PullRequest: The pull request object.
     """
-    github_client = github_sdk.Github(auth=github_sdk.Auth.Token(github_access_token.value))
+    github_client = github_sdk.Github(
+        auth=github_sdk.Auth.Token(github_access_token.value)
+    )
     airbyte_repo = github_client.get_repo(AIRBYTE_GITHUB_REPO)
     return airbyte_repo.get_pull(pull_request_number)
 
 
-def update_global_commit_status_check_for_tests(click_context: dict, github_state: str, logger: Optional[Logger] = None) -> None:
-
+def update_global_commit_status_check_for_tests(
+    click_context: dict, github_state: str, logger: Optional[Logger] = None
+) -> None:
     update_commit_status_check(
         click_context["git_revision"],
         github_state,
@@ -138,7 +160,6 @@ def create_or_update_github_pull_request(
     labels: Optional[Iterable[str]] = None,
     force_push: bool = True,
 ) -> github_sdk.PullRequest.PullRequest:
-
     logger = logger or main_logger
     g = github_sdk.Github(auth=github_sdk.Auth.Token(github_token))
     repo = g.get_repo(repo_name)
@@ -149,7 +170,9 @@ def create_or_update_github_pull_request(
         if modified_file.exists():
             with open(modified_file, "rb") as file:
                 logger.info(f"Reading file: {modified_file}")
-                content = base64.b64encode(file.read()).decode("utf-8")  # Encode file content to base64
+                content = base64.b64encode(file.read()).decode(
+                    "utf-8"
+                )  # Encode file content to base64
                 blob = repo.create_git_blob(content, "base64")
                 changed_file = ChangedFile(path=str(modified_file), sha=blob.sha)
         changed_files.append(changed_file)
@@ -222,7 +245,9 @@ def create_or_update_github_pull_request(
     return pull_request
 
 
-def is_automerge_pull_request(pull_request: Optional[github_sdk.PullRequest.PullRequest]) -> bool:
+def is_automerge_pull_request(
+    pull_request: Optional[github_sdk.PullRequest.PullRequest],
+) -> bool:
     labels = [label.name for label in pull_request.get_labels()] if pull_request else []
     if labels and "auto-merge" in labels:
         return True

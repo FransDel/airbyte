@@ -21,7 +21,9 @@ class CONNECTOR_TEST_STEP_ID(str, Enum):
     TEST_ORCHESTRATOR = "test_orchestrator"
     DEPLOY_ORCHESTRATOR = "deploy_orchestrator"
     MIGRATE_POETRY_UPDATE_README = "migrate_to_poetry.update_readme"
-    MIGRATE_POETRY_CHECK_MIGRATION_CANDIDATE = "migrate_to_poetry.check_migration_candidate"
+    MIGRATE_POETRY_CHECK_MIGRATION_CANDIDATE = (
+        "migrate_to_poetry.check_migration_candidate"
+    )
     MIGRATE_POETRY_POETRY_INIT = "migrate_to_poetry.poetry_init"
     MIGRATE_POETRY_DELETE_SETUP_PY = "migrate_to_poetry.delete_setup_py"
     MIGRATE_POETRY_REGRESSION_TEST = "migrate_to_poetry.regression"

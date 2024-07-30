@@ -128,7 +128,6 @@ class KlaviyoStream(HttpStream, CheckpointMixin, ABC):
         stream_slice: Optional[Mapping[str, Any]] = None,
         stream_state: Optional[Mapping[str, Any]] = None,
     ) -> Iterable[StreamData]:
-
         current_state = self.state or {}
         try:
             for record in super().read_records(sync_mode, cursor_field, stream_slice, current_state):
@@ -263,7 +262,6 @@ class CampaignsDetailed(Campaigns):
             record["campaign_message"] = campaign_message_response.json().get("data")
 
     def get_error_handler(self) -> ErrorHandler:
-
         error_mapping = DEFAULT_ERROR_MAPPING | {
             404: ErrorResolution(ResponseAction.IGNORE, FailureType.config_error, "Resource not found. Ignoring.")
         }

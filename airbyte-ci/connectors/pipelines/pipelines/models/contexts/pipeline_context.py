@@ -20,7 +20,11 @@ from dagger import Secret as DaggerSecret
 from dagger import Service
 from github import PullRequest
 from pipelines.airbyte_ci.connectors.reports import ConnectorReport
-from pipelines.consts import MANUAL_PIPELINE_STATUS_CHECK_OVERRIDE_PREFIXES, CIContext, ContextState
+from pipelines.consts import (
+    MANUAL_PIPELINE_STATUS_CHECK_OVERRIDE_PREFIXES,
+    CIContext,
+    ContextState,
+)
 from pipelines.helpers.execution.run_steps import RunStepOptions
 from pipelines.helpers.github import AIRBYTE_GITHUB_REPO_URL, update_commit_status_check
 from pipelines.helpers.slack import send_message_to_webhook
@@ -43,7 +47,9 @@ class PipelineContext:
 
     secrets_to_mask: List[str]
 
-    PRODUCTION = bool(os.environ.get("PRODUCTION", False))  # Set this to True to enable production mode (e.g. to send PR comments)
+    PRODUCTION = bool(
+        os.environ.get("PRODUCTION", False)
+    )  # Set this to True to enable production mode (e.g. to send PR comments)
 
     @lru_cache
     def get_default_excluded_files(self) -> list[str]:
@@ -139,7 +145,9 @@ class PipelineContext:
 
     @property
     def dagger_client(self) -> Client:
-        assert self._dagger_client is not None, "The dagger client was not set on this PipelineContext"
+        assert (
+            self._dagger_client is not None
+        ), "The dagger client was not set on this PipelineContext"
         return self._dagger_client
 
     @dagger_client.setter
@@ -170,7 +178,9 @@ class PipelineContext:
     def java_log_scrub_pattern_secret(self) -> Optional[DaggerSecret]:
         if not self.secrets_to_mask:
             return None
-        return self.dagger_client.set_secret("log_scrub_pattern", java_log_scrub_pattern(self.secrets_to_mask))
+        return self.dagger_client.set_secret(
+            "log_scrub_pattern", java_log_scrub_pattern(self.secrets_to_mask)
+        )
 
     @property
     def github_commit_status(self) -> dict:
@@ -213,11 +223,14 @@ class PipelineContext:
 
     @property
     def remote_storage_enabled(self) -> bool:
-        return self.is_ci and bool(self.ci_report_bucket) and bool(self.ci_gcp_credentials)
+        return (
+            self.is_ci and bool(self.ci_report_bucket) and bool(self.ci_gcp_credentials)
+        )
 
     def _should_send_status_check(self) -> bool:
         should_send = self.is_pr or any(
-            self.pipeline_name.startswith(override) for override in MANUAL_PIPELINE_STATUS_CHECK_OVERRIDE_PREFIXES
+            self.pipeline_name.startswith(override)
+            for override in MANUAL_PIPELINE_STATUS_CHECK_OVERRIDE_PREFIXES
         )
         self.logger.info(f"Should send status check: {should_send}")
         return should_send
@@ -235,7 +248,12 @@ class PipelineContext:
         """
         return self.dagger_client.host().file(file_path)
 
-    def get_repo_dir(self, subdir: str = ".", exclude: Optional[List[str]] = None, include: Optional[List[str]] = None) -> Directory:
+    def get_repo_dir(
+        self,
+        subdir: str = ".",
+        exclude: Optional[List[str]] = None,
+        include: Optional[List[str]] = None,
+    ) -> Directory:
         """Get a directory from the current repository.
 
         The directory is extracted from the host file system.
@@ -259,7 +277,9 @@ class PipelineContext:
         if subdir != ".":
             subdir = f"{subdir}/" if not subdir.endswith("/") else subdir
             exclude = [f.replace(subdir, "") for f in exclude if subdir in f]
-        return self.dagger_client.host().directory(subdir, exclude=exclude, include=include)
+        return self.dagger_client.host().directory(
+            subdir, exclude=exclude, include=include
+        )
 
     def create_slack_message(self) -> str:
         raise NotImplementedError()
@@ -278,18 +298,26 @@ class PipelineContext:
             PipelineContext: A running instance of the PipelineContext.
         """
         if self.dagger_client is None:
-            raise Exception("A Pipeline can't be entered with an undefined dagger_client")
+            raise Exception(
+                "A Pipeline can't be entered with an undefined dagger_client"
+            )
         self.state = ContextState.RUNNING
         self.started_at = datetime.utcnow()
         self.logger.info("Caching the latest CDK version...")
         await asyncify(update_commit_status_check)(**self.github_commit_status)
         if self.should_send_slack_message:
             # Using a type ignore here because the should_send_slack_message property is checking for non nullity of the slack_webhook
-            await asyncify(send_message_to_webhook)(self.create_slack_message(), self.get_slack_channels(), self.slack_webhook)  # type: ignore
+            await asyncify(send_message_to_webhook)(
+                self.create_slack_message(),
+                self.get_slack_channels(),
+                self.slack_webhook,
+            )  # type: ignore
         return self
 
     @staticmethod
-    def determine_final_state(report: Optional[Report], exception_value: Optional[BaseException]) -> ContextState:
+    def determine_final_state(
+        report: Optional[Report], exception_value: Optional[BaseException]
+    ) -> ContextState:
         """Determine the final state of the context from the report or the exception value.
 
         Args:
@@ -309,7 +337,10 @@ class PipelineContext:
         )
 
     async def __aexit__(
-        self, exception_type: Optional[type[BaseException]], exception_value: Optional[BaseException], traceback: Optional[TracebackType]
+        self,
+        exception_type: Optional[type[BaseException]],
+        exception_value: Optional[BaseException],
+        traceback: Optional[TracebackType],
     ) -> bool:
         """Perform teardown operation for the PipelineContext.
 
@@ -331,7 +362,9 @@ class PipelineContext:
             self.logger.error("An error was handled by the Pipeline", exc_info=True)
 
         if self.report is None:
-            self.logger.error("No test report was provided. This is probably due to an upstream error")
+            self.logger.error(
+                "No test report was provided. This is probably due to an upstream error"
+            )
             self.report = Report(self, steps_results=[])
 
         self.state = self.determine_final_state(self.report, exception_value)
@@ -343,7 +376,9 @@ class PipelineContext:
         if self.should_send_slack_message:
             # Using a type ignore here because the should_send_slack_message property is checking for non nullity of the slack_webhook
             await asyncify(send_message_to_webhook)(
-                self.create_slack_message(), self.get_slack_channels(), self.slack_webhook  # type: ignore
+                self.create_slack_message(),
+                self.get_slack_channels(),
+                self.slack_webhook,  # type: ignore
             )
         # supress the exception if it was handled
         return True

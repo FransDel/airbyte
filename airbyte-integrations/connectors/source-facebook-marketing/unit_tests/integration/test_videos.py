@@ -96,7 +96,7 @@ class TestFullRefresh(TestCase):
             stream_name=_STREAM_NAME,
             sync_mode=SyncMode.full_refresh,
             expecting_exception=expecting_exception,
-            json_schema=json_schema
+            json_schema=json_schema,
         )
 
     @HttpMocker()

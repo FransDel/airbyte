@@ -18,5 +18,5 @@ __all__ = [
     "HttpStatusErrorHandler",
     "JsonErrorMessageParser",
     "ResponseAction",
-    "ErrorResolution"
+    "ErrorResolution",
 ]

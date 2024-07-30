@@ -77,7 +77,10 @@ def file_generator(faker):
         def fake_records_gen():
             new_line = "\n"
             for i in range(1000):
-                yield f"{str(faker.random_int())},{faker.random_int()},{faker.date_of_birth()},{faker.random_int()}," f"{faker.random_int()},{faker.email()},{faker.postcode()}{new_line}"
+                yield (
+                    f"{str(faker.random_int())},{faker.random_int()},{faker.date_of_birth()},{faker.random_int()},"
+                    f"{faker.random_int()},{faker.email()},{faker.postcode()}{new_line}"
+                )
 
         size, records = 0, 0
         path = os.path.realpath(str(time.time()))
@@ -98,9 +101,7 @@ def file_generator(faker):
 
 def get_stream_by_name(stream_name: str, config: Mapping[str, Any]) -> DeclarativeStream:
     source = SourceMarketo()
-    matches_by_name = [
-        stream_config for stream_config in source._get_declarative_streams(config) if stream_config.name == stream_name
-    ]
+    matches_by_name = [stream_config for stream_config in source._get_declarative_streams(config) if stream_config.name == stream_name]
     if not matches_by_name:
         raise ValueError("Please provide a valid stream name.")
     return matches_by_name[0]

@@ -39,7 +39,7 @@ def logger():
 @pytest.fixture
 def basic_config():
     return {
-        "shop": "test_shop", 
+        "shop": "test_shop",
         "credentials": {"auth_method": "api_password", "api_password": "api_password"},
         "shop_id": 0,
     }
@@ -52,7 +52,6 @@ def auth_config():
         "start_date": "2023-01-01",
         "credentials": {"auth_method": "api_password", "api_password": "api_password"},
         "authenticator": None,
-        
     }
 
 
@@ -413,8 +412,8 @@ def bulk_job_running_response():
             }
         },
     }
-    
-    
+
+
 @pytest.fixture
 def bulk_job_running_with_object_count_and_url_response():
     return {

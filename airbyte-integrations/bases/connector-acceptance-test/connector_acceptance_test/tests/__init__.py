@@ -6,4 +6,13 @@ from .test_core import TestBasicRead, TestConnection, TestConnectorAttributes, T
 from .test_full_refresh import TestFullRefresh
 from .test_incremental import TestIncremental
 
-__all__ = ["TestSpec", "TestBasicRead", "TestConnection", "TestConnectorAttributes", "TestDiscovery", "TestFullRefresh", "TestIncremental", "TestConnectorDocumentation"]
+__all__ = [
+    "TestSpec",
+    "TestBasicRead",
+    "TestConnection",
+    "TestConnectorAttributes",
+    "TestDiscovery",
+    "TestFullRefresh",
+    "TestIncremental",
+    "TestConnectorDocumentation",
+]

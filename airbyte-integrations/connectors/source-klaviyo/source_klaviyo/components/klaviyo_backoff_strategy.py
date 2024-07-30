@@ -12,14 +12,12 @@ from source_klaviyo.exceptions import KlaviyoBackoffError
 
 class KlaviyoBackoffStrategy(DefaultBackoffStrategy):
     def __init__(self, max_time: int, name: str) -> None:
-
         self._max_time = max_time
         self._name = name
 
     def backoff_time(
         self, response_or_exception: Optional[Union[requests.Response, requests.RequestException]], **kwargs
     ) -> Optional[float]:
-
         if isinstance(response_or_exception, requests.Response):
             if response_or_exception.status_code == 429:
                 retry_after = response_or_exception.headers.get("Retry-After")

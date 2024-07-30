@@ -11,10 +11,10 @@ def config_pass():
             "auth_type": "Client",
             "client_id": "mock_client_id",
             "client_secret": "mock_client_secret",
-            "refresh_token": "mock_refresh_token"
+            "refresh_token": "mock_refresh_token",
         },
         "environment": "Sandbox",
-        "start_date": "2021-07-12T00:00:00Z"
+        "start_date": "2021-07-12T00:00:00Z",
     }
 
 
@@ -30,10 +30,10 @@ def incremental_config_pass():
             "auth_type": "Client",
             "client_id": "mock_client_id",
             "client_secret": "mock_client_secret",
-            "refresh_token": "mock_refresh_token"
+            "refresh_token": "mock_refresh_token",
         },
         "start_date": "2021-07-12T00:00:00Z",
-        "environment": "Sandbox"
+        "environment": "Sandbox",
     }
 
 
@@ -125,6 +125,7 @@ def mock_users_response():
         "hasNext": True,
         "next": "%5B1628543173558%2C%227bf8c1ac-4a68-450f-bea0-a1e2c3f5aeaf%22%5D",
     }
+
 
 @fixture
 def mock_users_response_no_next():

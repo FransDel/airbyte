@@ -12,7 +12,11 @@ from typing import TYPE_CHECKING, Callable, List
 import asyncclick as click
 from connector_ops.utils import ConnectorLanguage  # type: ignore
 from pipelines import consts
-from pipelines.helpers.github import AIRBYTE_GITHUB_REPO_URL, is_automerge_pull_request, update_commit_status_check
+from pipelines.helpers.github import (
+    AIRBYTE_GITHUB_REPO_URL,
+    is_automerge_pull_request,
+    update_commit_status_check,
+)
 
 if TYPE_CHECKING:
     from dagger import Container
@@ -39,12 +43,17 @@ async def cache_latest_cdk(context: ConnectorContext) -> None:
     """
     # We want the CDK to be re-downloaded on every run per connector to ensure we always get the latest version.
     # But we don't want to invalidate the pip cache on every run because it could lead to a different CDK version installed on different architecture build.
-    cachebuster_value = f"{context.connector.technical_name}_{context.pipeline_start_timestamp}"
+    cachebuster_value = (
+        f"{context.connector.technical_name}_{context.pipeline_start_timestamp}"
+    )
 
     await (
         context.dagger_client.container()
         .from_("python:3.9-slim")
-        .with_mounted_cache(consts.PIP_CACHE_PATH, context.dagger_client.cache_volume(consts.PIP_CACHE_VOLUME_NAME))
+        .with_mounted_cache(
+            consts.PIP_CACHE_PATH,
+            context.dagger_client.cache_volume(consts.PIP_CACHE_VOLUME_NAME),
+        )
         .with_env_variable("CACHEBUSTER", cachebuster_value)
         .with_exec(["pip", "install", "--force-reinstall", "airbyte-cdk", "-vvv"])
         .sync()
@@ -71,12 +80,17 @@ def never_fail_exec(command: List[str]) -> Callable[[Container], Container]:
     """
 
     def never_fail_exec_inner(container: Container) -> Container:
-        return container.with_exec(["sh", "-c", f"{' '.join(command)}; echo $? > /exit_code"], skip_entrypoint=True)
+        return container.with_exec(
+            ["sh", "-c", f"{' '.join(command)}; echo $? > /exit_code"],
+            skip_entrypoint=True,
+        )
 
     return never_fail_exec_inner
 
 
-def do_regression_test_status_check(ctx: click.Context, status_check_name: str, logger: Logger) -> None:
+def do_regression_test_status_check(
+    ctx: click.Context, status_check_name: str, logger: Logger
+) -> None:
     """
     Emit a failing status check that requires a manual override, via a /-command.
 
@@ -91,12 +105,17 @@ def do_regression_test_status_check(ctx: click.Context, status_check_name: str, 
         and (ctx.obj["git_repo_url"] == AIRBYTE_GITHUB_REPO_URL)
         and any(
             [
-                (connector.language == ConnectorLanguage.PYTHON and connector.support_level == "certified")
+                (
+                    connector.language == ConnectorLanguage.PYTHON
+                    and connector.support_level == "certified"
+                )
                 for connector in ctx.obj["selected_connectors_with_modified_files"]
             ]
         )
     ):
-        logger.info(f'is_automerge_pull_request={is_automerge_pull_request(ctx.obj.get("pull_request"))}')
+        logger.info(
+            f'is_automerge_pull_request={is_automerge_pull_request(ctx.obj.get("pull_request"))}'
+        )
         logger.info(f'git_repo_url={ctx.obj["git_repo_url"]}')
         for connector in ctx.obj["selected_connectors_with_modified_files"]:
             logger.info(f"connector = {connector.name}")

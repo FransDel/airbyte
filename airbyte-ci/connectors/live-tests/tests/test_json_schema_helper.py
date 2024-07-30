@@ -26,7 +26,9 @@ from live_tests.commons.json_schema_helper import (
 from pydantic import BaseModel
 
 
-def records_with_state(records, state, stream_mapping, state_cursor_paths) -> Iterable[Tuple[Any, Any, Any]]:
+def records_with_state(
+    records, state, stream_mapping, state_cursor_paths
+) -> Iterable[Tuple[Any, Any, Any]]:
     """Iterate over records and return cursor value with corresponding cursor value from state"""
 
     for record in records:
@@ -40,11 +42,15 @@ def records_with_state(records, state, stream_mapping, state_cursor_paths) -> It
                 continue
 
             # first attempt to parse the state value assuming the state object is namespaced on stream names
-            state_value = cursor_field.parse(record=state[stream_name], path=state_cursor_paths[stream_name])
+            state_value = cursor_field.parse(
+                record=state[stream_name], path=state_cursor_paths[stream_name]
+            )
         except KeyError:
             try:
                 # try second time as an absolute path in state file (i.e. bookmarks -> stream_name -> column -> value)
-                state_value = cursor_field.parse(record=state, path=state_cursor_paths[stream_name])
+                state_value = cursor_field.parse(
+                    record=state, path=state_cursor_paths[stream_name]
+                )
             except KeyError:
                 continue
         yield record_value, state_value, stream_name
@@ -84,7 +90,10 @@ def stream_schema_fixture():
         "properties": {
             "id": {"type": "integer"},
             "ts_created": {"type": "string", "format": "datetime"},
-            "nested": {"type": "object", "properties": {"ts_updated": {"type": "string", "format": "date"}}},
+            "nested": {
+                "type": "object",
+                "properties": {"ts_updated": {"type": "string", "format": "date"}},
+            },
         },
     }
 
@@ -93,7 +102,11 @@ def stream_schema_fixture():
 def stream_mapping_fixture(stream_schema):
     return {
         "my_stream": ConfiguredAirbyteStream(
-            stream=AirbyteStream(name="my_stream", json_schema=stream_schema, supported_sync_modes=[SyncMode.full_refresh]),
+            stream=AirbyteStream(
+                name="my_stream",
+                json_schema=stream_schema,
+                supported_sync_modes=[SyncMode.full_refresh],
+            ),
             sync_mode=SyncMode.full_refresh,
             destination_sync_mode=DestinationSyncMode.append,
         )
@@ -107,7 +120,11 @@ def records_fixture():
             type=Type.RECORD,
             record=AirbyteRecordMessage(
                 stream="my_stream",
-                data={"id": 1, "ts_created": "2015-11-01T22:03:11", "nested": {"ts_updated": "2015-05-01"}},
+                data={
+                    "id": 1,
+                    "ts_created": "2015-11-01T22:03:11",
+                    "nested": {"ts_updated": "2015-05-01"},
+                },
                 emitted_at=0,
             ),
         )
@@ -118,7 +135,12 @@ def test_simple_path(records, stream_mapping, simple_state):
     stream_mapping["my_stream"].cursor_field = ["id"]
     paths = {"my_stream": ["id"]}
 
-    result = records_with_state(records=records, state=simple_state, stream_mapping=stream_mapping, state_cursor_paths=paths)
+    result = records_with_state(
+        records=records,
+        state=simple_state,
+        stream_mapping=stream_mapping,
+        state_cursor_paths=paths,
+    )
     record_value, state_value, stream_name = next(result)
 
     assert record_value == 1, "record value must be correctly found"
@@ -129,29 +151,52 @@ def test_nested_path(records, stream_mapping, nested_state):
     stream_mapping["my_stream"].cursor_field = ["nested", "ts_updated"]
     paths = {"my_stream": ["some_account_id", "ts_updated"]}
 
-    result = records_with_state(records=records, state=nested_state, stream_mapping=stream_mapping, state_cursor_paths=paths)
+    result = records_with_state(
+        records=records,
+        state=nested_state,
+        stream_mapping=stream_mapping,
+        state_cursor_paths=paths,
+    )
     record_value, state_value, stream_name = next(result)
 
-    assert record_value == pendulum.datetime(2015, 5, 1), "record value must be correctly found"
-    assert state_value == pendulum.datetime(2015, 1, 1, 22, 3, 11), "state value must be correctly found"
+    assert record_value == pendulum.datetime(
+        2015, 5, 1
+    ), "record value must be correctly found"
+    assert state_value == pendulum.datetime(
+        2015, 1, 1, 22, 3, 11
+    ), "state value must be correctly found"
 
 
 def test_absolute_path(records, stream_mapping, singer_state):
     stream_mapping["my_stream"].cursor_field = ["ts_created"]
     paths = {"my_stream": ["bookmarks", "my_stream", "ts_created"]}
 
-    result = records_with_state(records=records, state=singer_state, stream_mapping=stream_mapping, state_cursor_paths=paths)
+    result = records_with_state(
+        records=records,
+        state=singer_state,
+        stream_mapping=stream_mapping,
+        state_cursor_paths=paths,
+    )
     record_value, state_value, stream_name = next(result)
 
-    assert record_value == pendulum.datetime(2015, 11, 1, 22, 3, 11), "record value must be correctly found"
-    assert state_value == pendulum.datetime(2014, 1, 1, 22, 3, 11), "state value must be correctly found"
+    assert record_value == pendulum.datetime(
+        2015, 11, 1, 22, 3, 11
+    ), "record value must be correctly found"
+    assert state_value == pendulum.datetime(
+        2014, 1, 1, 22, 3, 11
+    ), "state value must be correctly found"
 
 
 def test_none_state(records, stream_mapping, none_state):
     stream_mapping["my_stream"].cursor_field = ["ts_created"]
     paths = {"my_stream": ["unknown", "ts_created"]}
 
-    result = records_with_state(records=records, state=none_state, stream_mapping=stream_mapping, state_cursor_paths=paths)
+    result = records_with_state(
+        records=records,
+        state=none_state,
+        stream_mapping=stream_mapping,
+        state_cursor_paths=paths,
+    )
     assert next(result, None) is None
 
 
@@ -183,7 +228,10 @@ def test_json_schema_helper_pydantic_generated():
     js_helper = JsonSchemaHelper(Root.schema())
     variant_paths = js_helper.find_nodes(keys=["anyOf", "oneOf"])
     assert len(variant_paths) == 2
-    assert variant_paths == [["properties", "f", "anyOf"], ["definitions", "C", "properties", "e", "anyOf"]]
+    assert variant_paths == [
+        ["properties", "f", "anyOf"],
+        ["definitions", "C", "properties", "e", "anyOf"],
+    ]
     # TODO: implement validation for pydantic generated objects as well
     # js_helper.validate_variant_paths(variant_paths)
 
@@ -200,7 +248,10 @@ def test_json_schema_helper_pydantic_generated():
             ["/a", "/a/[]", "/a/[]/b"],
         ),
         ({"a": [{"b": 12}, {"b": 15}]}, ["/a", "/a/[]", "/a/[]/b"]),
-        ({"a": [[[{"b": 12}, {"b": 15}]]]}, ["/a", "/a/[]", "/a/[]/[]", "/a/[]/[]/[]", "/a/[]/[]/[]/b"]),
+        (
+            {"a": [[[{"b": 12}, {"b": 15}]]]},
+            ["/a", "/a/[]", "/a/[]/[]", "/a/[]/[]/[]", "/a/[]/[]/[]/b"],
+        ),
     ],
 )
 def test_get_object_strucutre(object, paths):
@@ -212,27 +263,76 @@ def test_get_object_strucutre(object, paths):
     [
         ({"type": "object", "properties": {"a": {"type": "string"}}}, ["/a"]),
         ({"properties": {"a": {"type": "string"}}}, ["/a"]),
-        ({"type": "object", "properties": {"a": {"type": "string"}, "b": {"type": "number"}}}, ["/a", "/b"]),
         (
             {
                 "type": "object",
-                "properties": {"a": {"type": "string"}, "b": {"$ref": "#definitions/b_type"}},
+                "properties": {"a": {"type": "string"}, "b": {"type": "number"}},
+            },
+            ["/a", "/b"],
+        ),
+        (
+            {
+                "type": "object",
+                "properties": {
+                    "a": {"type": "string"},
+                    "b": {"$ref": "#definitions/b_type"},
+                },
                 "definitions": {"b_type": {"type": "number"}},
             },
             ["/a", "/b"],
         ),
-        ({"type": "object", "oneOf": [{"properties": {"a": {"type": "string"}}}, {"properties": {"b": {"type": "string"}}}]}, ["/a", "/b"]),
-        # Some of pydantic generatec schemas have anyOf keyword
-        ({"type": "object", "anyOf": [{"properties": {"a": {"type": "string"}}}, {"properties": {"b": {"type": "string"}}}]}, ["/a", "/b"]),
         (
-            {"type": "array", "items": {"oneOf": [{"properties": {"a": {"type": "string"}}}, {"properties": {"b": {"type": "string"}}}]}},
+            {
+                "type": "object",
+                "oneOf": [
+                    {"properties": {"a": {"type": "string"}}},
+                    {"properties": {"b": {"type": "string"}}},
+                ],
+            },
+            ["/a", "/b"],
+        ),
+        # Some of pydantic generatec schemas have anyOf keyword
+        (
+            {
+                "type": "object",
+                "anyOf": [
+                    {"properties": {"a": {"type": "string"}}},
+                    {"properties": {"b": {"type": "string"}}},
+                ],
+            },
+            ["/a", "/b"],
+        ),
+        (
+            {
+                "type": "array",
+                "items": {
+                    "oneOf": [
+                        {"properties": {"a": {"type": "string"}}},
+                        {"properties": {"b": {"type": "string"}}},
+                    ]
+                },
+            },
             ["/[]/a", "/[]/b"],
         ),
         # There could be an object with any properties with specific type
-        ({"type": "object", "properties": {"a": {"type": "object", "additionalProperties": {"type": "string"}}}}, ["/a"]),
+        (
+            {
+                "type": "object",
+                "properties": {
+                    "a": {"type": "object", "additionalProperties": {"type": "string"}}
+                },
+            },
+            ["/a"],
+        ),
         # Array with no item type specified
         ({"type": "array"}, ["/[]"]),
-        ({"type": "array", "items": {"type": "object", "additionalProperties": {"type": "string"}}}, ["/[]"]),
+        (
+            {
+                "type": "array",
+                "items": {"type": "object", "additionalProperties": {"type": "string"}},
+            },
+            ["/[]"],
+        ),
     ],
 )
 def test_get_expected_schema_structure(schema, paths):
@@ -261,14 +361,22 @@ def test_find_and_get_nodes(keys: List[Text], num_paths: int, last_value: Any):
                     {
                         "type": "object",
                         "properties": {
-                            "common": {"type": "string", "const": "option1", "default": "option1"},
+                            "common": {
+                                "type": "string",
+                                "const": "option1",
+                                "default": "option1",
+                            },
                             "option1": {"type": "string"},
                         },
                     },
                     {
                         "type": "object",
                         "properties": {
-                            "common": {"type": "string", "const": "option2", "default": "option2"},
+                            "common": {
+                                "type": "string",
+                                "const": "option2",
+                                "default": "option2",
+                            },
                             "option1": {"a_key": "a_value"},
                             "option2": ["value1", "value2"],
                         },
@@ -455,19 +563,71 @@ SCHEMA = {
     "record,schema,expected_result",
     [
         pytest.param(COMPLETE_CONFORMING_RECORD, SCHEMA, True, id="record-conforms"),
-        pytest.param(NONCONFORMING_EXTRA_COLUMN_RECORD, SCHEMA, False, id="nonconforming-extra-column"),
-        pytest.param(CONFORMING_WITH_MISSING_COLUMN_RECORD, SCHEMA, True, id="record-conforms-with-missing-column"),
-        pytest.param(CONFORMING_WITH_NARROWER_TYPE_RECORD, SCHEMA, True, id="record-conforms-with-narrower-type"),
-        pytest.param(NONCONFORMING_WIDER_TYPE_RECORD, SCHEMA, False, id="nonconforming-wider-type"),
-        pytest.param(NONCONFORMING_NON_OBJECT_RECORD, SCHEMA, False, id="nonconforming-string-is-not-an-object"),
-        pytest.param(NONCONFORMING_NON_ARRAY_RECORD, SCHEMA, False, id="nonconforming-string-is-not-an-array"),
-        pytest.param(NONCONFORMING_TOO_WIDE_ARRAY_RECORD, SCHEMA, False, id="nonconforming-array-values-too-wide"),
-        pytest.param(CONFORMING_NARROWER_ARRAY_RECORD, SCHEMA, True, id="conforming-array-values-narrower-than-schema"),
-        pytest.param(NONCONFORMING_INVALID_ARRAY_RECORD, SCHEMA, False, id="nonconforming-array-is-not-a-string"),
-        pytest.param(NONCONFORMING_INVALID_OBJECT_RECORD, SCHEMA, False, id="nonconforming-object-is-not-a-string"),
+        pytest.param(
+            NONCONFORMING_EXTRA_COLUMN_RECORD,
+            SCHEMA,
+            False,
+            id="nonconforming-extra-column",
+        ),
+        pytest.param(
+            CONFORMING_WITH_MISSING_COLUMN_RECORD,
+            SCHEMA,
+            True,
+            id="record-conforms-with-missing-column",
+        ),
+        pytest.param(
+            CONFORMING_WITH_NARROWER_TYPE_RECORD,
+            SCHEMA,
+            True,
+            id="record-conforms-with-narrower-type",
+        ),
+        pytest.param(
+            NONCONFORMING_WIDER_TYPE_RECORD,
+            SCHEMA,
+            False,
+            id="nonconforming-wider-type",
+        ),
+        pytest.param(
+            NONCONFORMING_NON_OBJECT_RECORD,
+            SCHEMA,
+            False,
+            id="nonconforming-string-is-not-an-object",
+        ),
+        pytest.param(
+            NONCONFORMING_NON_ARRAY_RECORD,
+            SCHEMA,
+            False,
+            id="nonconforming-string-is-not-an-array",
+        ),
+        pytest.param(
+            NONCONFORMING_TOO_WIDE_ARRAY_RECORD,
+            SCHEMA,
+            False,
+            id="nonconforming-array-values-too-wide",
+        ),
+        pytest.param(
+            CONFORMING_NARROWER_ARRAY_RECORD,
+            SCHEMA,
+            True,
+            id="conforming-array-values-narrower-than-schema",
+        ),
+        pytest.param(
+            NONCONFORMING_INVALID_ARRAY_RECORD,
+            SCHEMA,
+            False,
+            id="nonconforming-array-is-not-a-string",
+        ),
+        pytest.param(
+            NONCONFORMING_INVALID_OBJECT_RECORD,
+            SCHEMA,
+            False,
+            id="nonconforming-object-is-not-a-string",
+        ),
     ],
 )
-def test_conforms_to_schema(record: Mapping[str, Any], schema: Mapping[str, Any], expected_result: bool) -> None:
+def test_conforms_to_schema(
+    record: Mapping[str, Any], schema: Mapping[str, Any], expected_result: bool
+) -> None:
     assert conforms_to_schema(record, schema) == expected_result
 
 

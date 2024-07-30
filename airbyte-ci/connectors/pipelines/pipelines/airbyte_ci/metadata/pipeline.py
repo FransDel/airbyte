@@ -12,7 +12,11 @@ from pipelines.airbyte_ci.connectors.consts import CONNECTOR_TEST_STEP_ID
 from pipelines.airbyte_ci.connectors.context import ConnectorContext, PipelineContext
 from pipelines.airbyte_ci.steps.docker import SimpleDockerStep
 from pipelines.airbyte_ci.steps.poetry import PoetryRunStep
-from pipelines.consts import DOCS_DIRECTORY_ROOT_PATH, GIT_DIRECTORY_ROOT_PATH, INTERNAL_TOOL_PATHS
+from pipelines.consts import (
+    DOCS_DIRECTORY_ROOT_PATH,
+    GIT_DIRECTORY_ROOT_PATH,
+    INTERNAL_TOOL_PATHS,
+)
 from pipelines.dagger.actions.python.common import with_pip_packages
 from pipelines.dagger.containers.python import with_python_base
 from pipelines.helpers.execution.run_steps import STEP_TREE, StepToRun, run_steps
@@ -37,7 +41,10 @@ class MetadataValidation(SimpleDockerStep):
             internal_tools=[
                 MountPath(INTERNAL_TOOL_PATHS.METADATA_SERVICE.value),
             ],
-            secret_env_variables={"DOCKER_HUB_USERNAME": context.docker_hub_username, "DOCKER_HUB_PASSWORD": context.docker_hub_password}
+            secret_env_variables={
+                "DOCKER_HUB_USERNAME": context.docker_hub_username,
+                "DOCKER_HUB_PASSWORD": context.docker_hub_password,
+            }
             if context.docker_hub_username and context.docker_hub_password
             else None,
             command=[
@@ -120,7 +127,9 @@ class DeployOrchestrator(Step):
         # mount metadata_service/lib and metadata_service/orchestrator
         parent_dir = self.context.get_repo_dir("airbyte-ci/connectors/metadata_service")
         python_base = with_python_base(self.context, "3.10")
-        python_with_dependencies = with_pip_packages(python_base, ["dagster-cloud[serverless]==1.5.14", "poetry2setup==1.1.0"])
+        python_with_dependencies = with_pip_packages(
+            python_base, ["dagster-cloud[serverless]==1.5.14", "poetry2setup==1.1.0"]
+        )
         dagster_cloud_api_token_secret: dagger.Secret = get_secret_host_variable(
             self.context.dagger_client, "DAGSTER_CLOUD_METADATA_API_TOKEN"
         )
@@ -132,7 +141,9 @@ class DeployOrchestrator(Step):
 
         container_to_run = (
             python_with_dependencies.with_mounted_directory("/src", parent_dir)
-            .with_secret_variable("DAGSTER_CLOUD_API_TOKEN", dagster_cloud_api_token_secret)
+            .with_secret_variable(
+                "DAGSTER_CLOUD_API_TOKEN", dagster_cloud_api_token_secret
+            )
             .with_env_variable("DAGSTER_CLOUD_DEPLOYMENT", target_deployment)
             .with_workdir("/src/orchestrator")
             .with_exec(["/bin/sh", "-c", "poetry2setup >> setup.py"])
@@ -185,7 +196,9 @@ async def run_metadata_orchestrator_deploy_pipeline(
         ci_context=ci_context,
     )
     async with dagger.Connection(DAGGER_CONFIG) as dagger_client:
-        metadata_pipeline_context.dagger_client = dagger_client.pipeline(metadata_pipeline_context.pipeline_name)
+        metadata_pipeline_context.dagger_client = dagger_client.pipeline(
+            metadata_pipeline_context.pipeline_name
+        )
 
         async with metadata_pipeline_context:
             steps: STEP_TREE = [

@@ -40,8 +40,12 @@ def get_metadata_inferred_insights(connector: Connector) -> Dict:
         "connector_support_level": connector.metadata.get("supportLevel"),
         "ab_internal_sl": connector.metadata.get("ab_internal", {}).get("sl"),
         "ab_internal_ql": connector.metadata.get("ab_internal", {}).get("ql"),
-        "is_cloud_enabled": connector.metadata.get("registries", {}).get("cloud", {}).get("enabled", False),
-        "is_oss_enabled": connector.metadata.get("registries", {}).get("oss", {}).get("enabled", False),
+        "is_cloud_enabled": connector.metadata.get("registries", {})
+        .get("cloud", {})
+        .get("enabled", False),
+        "is_oss_enabled": connector.metadata.get("registries", {})
+        .get("oss", {})
+        .get("enabled", False),
     }
 
 
@@ -62,12 +66,25 @@ def get_sbom_inferred_insights(raw_sbom: str | None, connector: Connector) -> Di
     if not raw_sbom:
         return sbom_inferred_insights
     sbom = json.loads(raw_sbom)
-    python_artifacts = {artifact["name"]: artifact for artifact in sbom["artifacts"] if artifact["type"] == "python"}
+    python_artifacts = {
+        artifact["name"]: artifact
+        for artifact in sbom["artifacts"]
+        if artifact["type"] == "python"
+    }
     for artifact in sbom["artifacts"]:
-        dependency = {"type": artifact["type"], "version": artifact["version"], "package_name": artifact["name"]}
-        if isinstance(sbom_inferred_insights["dependencies"], list) and dependency not in sbom_inferred_insights["dependencies"]:
+        dependency = {
+            "type": artifact["type"],
+            "version": artifact["version"],
+            "package_name": artifact["name"],
+        }
+        if (
+            isinstance(sbom_inferred_insights["dependencies"], list)
+            and dependency not in sbom_inferred_insights["dependencies"]
+        ):
             sbom_inferred_insights["dependencies"].append(dependency)
-    sbom_inferred_insights["cdk_version"] = python_artifacts.get("airbyte-cdk", {}).get("version")
+    sbom_inferred_insights["cdk_version"] = python_artifacts.get("airbyte-cdk", {}).get(
+        "version"
+    )
     return sbom_inferred_insights
 
 
@@ -102,7 +119,10 @@ def get_pylint_inferred_insights(pylint_output: str | None) -> Dict:
 
 
 def should_skip_generation(
-    result_backends: List[ResultBackend] | None, connector: Connector, files_to_persist: List[FileToPersist], rewrite: bool
+    result_backends: List[ResultBackend] | None,
+    connector: Connector,
+    files_to_persist: List[FileToPersist],
+    rewrite: bool,
 ) -> bool:
     """Check if the insights generation should be skipped because they already exist.
     Always run if rewrite is True or no result backends are provided.
@@ -119,7 +139,9 @@ def should_skip_generation(
     if rewrite or not result_backends:
         return False
 
-    for result_backend, file_to_persist in itertools.product(result_backends, files_to_persist):
+    for result_backend, file_to_persist in itertools.product(
+        result_backends, files_to_persist
+    ):
         if not result_backend.artifact_already_exists(connector, file_to_persist):
             return False
     return True
@@ -141,7 +163,9 @@ async def fetch_sbom(dagger_client: dagger.Client, connector: Connector) -> str 
     return None
 
 
-def generate_insights(connector: Connector, sbom: str | None, pylint_output: str | None) -> ConnectorInsights:
+def generate_insights(
+    connector: Connector, sbom: str | None, pylint_output: str | None
+) -> ConnectorInsights:
     """Generate insights for the connector.
 
     Args:
@@ -158,7 +182,9 @@ def generate_insights(connector: Connector, sbom: str | None, pylint_output: str
             **get_pylint_inferred_insights(pylint_output),
             **get_sbom_inferred_insights(sbom, connector),
             "ci_on_master_report": ci_on_master_report,
-            "ci_on_master_passes": ci_on_master_report.get("success") if ci_on_master_report else None,
+            "ci_on_master_passes": ci_on_master_report.get("success")
+            if ci_on_master_report
+            else None,
             "insight_generation_timestamp": datetime.datetime.utcnow(),
         }
     )
@@ -185,16 +211,22 @@ def persist_files(
         None
     """
     if not result_backends:
-        logger.warning(f"No result backends provided to persist files for {connector.technical_name}")
+        logger.warning(
+            f"No result backends provided to persist files for {connector.technical_name}"
+        )
         return None
     for backend, file in itertools.product(result_backends, files_to_persist):
         if file.file_content:
             if not rewrite and backend.artifact_already_exists(connector, file):
-                logger.info(f"Skipping writing {file.file_name} for {connector.technical_name} because it already exists.")
+                logger.info(
+                    f"Skipping writing {file.file_name} for {connector.technical_name} because it already exists."
+                )
                 continue
             backend.write(connector, file)
         else:
-            logger.warning(f"No content provided for {file.file_name} for {connector.technical_name}")
+            logger.warning(
+                f"No content provided for {file.file_name} for {connector.technical_name}"
+            )
 
 
 async def generate_insights_for_connector(
@@ -221,8 +253,12 @@ async def generate_insights_for_connector(
     files_to_persist = [insights_file, sbom_file]
 
     async with semaphore:
-        if should_skip_generation(result_backends, connector, files_to_persist, rewrite):
-            logger.info(f"Skipping insights generation for {connector.technical_name} because it is already generated.")
+        if should_skip_generation(
+            result_backends, connector, files_to_persist, rewrite
+        ):
+            logger.info(
+                f"Skipping insights generation for {connector.technical_name} because it is already generated."
+            )
             return True, connector
 
         logger.info(f"Generating insights for {connector.technical_name}")
@@ -239,5 +275,7 @@ async def generate_insights_for_connector(
             logger.info(f"Finished generating insights for {connector.technical_name}")
             return True, connector
         except Exception as e:
-            logger.error(f"Failed to generate insights for {connector.technical_name}: {e}")
+            logger.error(
+                f"Failed to generate insights for {connector.technical_name}: {e}"
+            )
             return False, connector

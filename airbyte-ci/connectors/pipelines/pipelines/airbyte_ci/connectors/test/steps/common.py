@@ -36,7 +36,9 @@ from pipelines.models.steps import STEP_PARAMS, MountPath, Step, StepResult, Ste
 # live_test can't resolve the passed connector container otherwise.
 from slugify import slugify  # type: ignore
 
-GITHUB_URL_PREFIX_FOR_CONNECTORS = f"{AIRBYTE_GITHUBUSERCONTENT_URL_PREFIX}/master/airbyte-integrations/connectors"
+GITHUB_URL_PREFIX_FOR_CONNECTORS = (
+    f"{AIRBYTE_GITHUBUSERCONTENT_URL_PREFIX}/master/airbyte-integrations/connectors"
+)
 
 
 class VersionCheck(Step, ABC):
@@ -80,7 +82,9 @@ class VersionCheck(Step, ABC):
 
     @property
     def failure_result(self) -> StepResult:
-        return StepResult(step=self, status=StepStatus.FAILURE, stderr=self.failure_message)
+        return StepResult(
+            step=self, status=StepStatus.FAILURE, stderr=self.failure_message
+        )
 
     @abstractmethod
     def validate(self) -> StepResult:
@@ -88,9 +92,17 @@ class VersionCheck(Step, ABC):
 
     async def _run(self) -> StepResult:
         if not self.should_run:
-            return StepResult(step=self, status=StepStatus.SKIPPED, stdout="No modified files required a version bump.")
+            return StepResult(
+                step=self,
+                status=StepStatus.SKIPPED,
+                stdout="No modified files required a version bump.",
+            )
         if self.context.ci_context == CIContext.MASTER:
-            return StepResult(step=self, status=StepStatus.SKIPPED, stdout="Version check are not running in master context.")
+            return StepResult(
+                step=self,
+                status=StepStatus.SKIPPED,
+                stdout="Version check are not running in master context.",
+            )
         try:
             return self.validate()
         except (requests.HTTPError, ValueError, TypeError) as e:
@@ -122,8 +134,15 @@ class VersionIncrementCheck(VersionCheck):
     @property
     def should_run(self) -> bool:
         for filename in self.context.modified_files:
-            relative_path = str(filename).replace(str(self.context.connector.code_directory) + "/", "")
-            if not any([relative_path.startswith(to_bypass) for to_bypass in self.BYPASS_CHECK_FOR]):
+            relative_path = str(filename).replace(
+                str(self.context.connector.code_directory) + "/", ""
+            )
+            if not any(
+                [
+                    relative_path.startswith(to_bypass)
+                    for to_bypass in self.BYPASS_CHECK_FOR
+                ]
+            ):
                 return True
         return False
 
@@ -150,9 +169,13 @@ class QaChecks(SimpleDockerStep):
             technical_name = technical_name.replace("-strict-encrypt", "")
             code_directory = Path(str(code_directory).replace("-strict-encrypt", ""))
             if documentation_file_path:
-                documentation_file_path = Path(str(documentation_file_path).replace("-strict-encrypt", ""))
+                documentation_file_path = Path(
+                    str(documentation_file_path).replace("-strict-encrypt", "")
+                )
             if migration_guide_file_path:
-                migration_guide_file_path = Path(str(migration_guide_file_path).replace("-strict-encrypt", ""))
+                migration_guide_file_path = Path(
+                    str(migration_guide_file_path).replace("-strict-encrypt", "")
+                )
             if icon_path:
                 icon_path = Path(str(icon_path).replace("-strict-encrypt", ""))
 
@@ -170,7 +193,10 @@ class QaChecks(SimpleDockerStep):
             internal_tools=[
                 MountPath(INTERNAL_TOOL_PATHS.CONNECTORS_QA.value),
             ],
-            secret_env_variables={"DOCKER_HUB_USERNAME": context.docker_hub_username, "DOCKER_HUB_PASSWORD": context.docker_hub_password}
+            secret_env_variables={
+                "DOCKER_HUB_USERNAME": context.docker_hub_username,
+                "DOCKER_HUB_PASSWORD": context.docker_hub_password,
+            }
             if context.docker_hub_username and context.docker_hub_password
             else None,
             command=["connectors-qa", "run", f"--name={technical_name}"],
@@ -195,11 +221,14 @@ class AcceptanceTests(Step):
         Returns:
             dict: The default pytest options.
         """
-        return super().default_params | {
-            "-ra": [],  # Show extra test summary info in the report for all but the passed tests
-            "--disable-warnings": [],  # Disable warnings in the pytest report
-            "--durations": ["3"],  # Show the 3 slowest tests in the report
-        }
+        return (
+            super().default_params
+            | {
+                "-ra": [],  # Show extra test summary info in the report for all but the passed tests
+                "--disable-warnings": [],  # Disable warnings in the pytest report
+                "--durations": ["3"],  # Show the 3 slowest tests in the report
+            }
+        )
 
     @property
     def base_cat_command(self) -> List[str]:
@@ -216,10 +245,17 @@ class AcceptanceTests(Step):
         ]
 
         if self.concurrent_test_run:
-            command += ["--numprocesses=auto"]  # Using pytest-xdist to run tests in parallel, auto means using all available cores
+            command += [
+                "--numprocesses=auto"
+            ]  # Using pytest-xdist to run tests in parallel, auto means using all available cores
         return command
 
-    def __init__(self, context: ConnectorContext, secrets: List[Secret], concurrent_test_run: Optional[bool] = False) -> None:
+    def __init__(
+        self,
+        context: ConnectorContext,
+        secrets: List[Secret],
+        concurrent_test_run: Optional[bool] = False,
+    ) -> None:
         """Create a step to run acceptance tests for a connector if it has an acceptance test config file.
 
         Args:
@@ -238,7 +274,10 @@ class AcceptanceTests(Step):
         """
         cat_command = self.base_cat_command
         if "integration_tests" in await connector_dir.entries():
-            if "acceptance.py" in await connector_dir.directory("integration_tests").entries():
+            if (
+                "acceptance.py"
+                in await connector_dir.directory("integration_tests").entries()
+            ):
                 cat_command += ["-p", "integration_tests.acceptance"]
         return cat_command + self.params_as_cli_options
 
@@ -255,7 +294,9 @@ class AcceptanceTests(Step):
         if not self.context.connector.acceptance_test_config:
             return StepResult(step=self, status=StepStatus.SKIPPED)
         connector_dir = await self.context.get_connector_dir()
-        cat_container = await self._build_connector_acceptance_test(connector_under_test_container, connector_dir)
+        cat_container = await self._build_connector_acceptance_test(
+            connector_under_test_container, connector_dir
+        )
         cat_command = await self.get_cat_command(connector_dir)
         cat_container = cat_container.with_(hacks.never_fail_exec(cat_command))
         step_result = await self.get_step_result(cat_container)
@@ -277,9 +318,14 @@ class AcceptanceTests(Step):
         Returns:
             str: A string representing the cachebuster value.
         """
-        return datetime.datetime.utcnow().strftime("%Y%m%d") + self.context.connector.version
+        return (
+            datetime.datetime.utcnow().strftime("%Y%m%d")
+            + self.context.connector.version
+        )
 
-    async def _build_connector_acceptance_test(self, connector_under_test_container: Container, test_input: Directory) -> Container:
+    async def _build_connector_acceptance_test(
+        self, connector_under_test_container: Container, test_input: Directory
+    ) -> Container:
         """Create a container to run connector acceptance tests.
 
         Args:
@@ -290,29 +336,48 @@ class AcceptanceTests(Step):
         """
 
         if self.context.connector_acceptance_test_image.endswith(":dev"):
-            cat_container = self.context.connector_acceptance_test_source_dir.docker_build()
+            cat_container = (
+                self.context.connector_acceptance_test_source_dir.docker_build()
+            )
         else:
-            cat_container = self.dagger_client.container().from_(self.context.connector_acceptance_test_image)
+            cat_container = self.dagger_client.container().from_(
+                self.context.connector_acceptance_test_image
+            )
 
         connector_container_id = await connector_under_test_container.id()
         cat_container = (
             cat_container.with_env_variable("RUN_IN_AIRBYTE_CI", "1")
             .with_exec(["mkdir", "/dagger_share"], skip_entrypoint=True)
             .with_env_variable("CACHEBUSTER", self.get_cache_buster())
-            .with_new_file("/tmp/container_id.txt", contents=str(connector_container_id))
+            .with_new_file(
+                "/tmp/container_id.txt", contents=str(connector_container_id)
+            )
             .with_workdir("/test_input")
             .with_mounted_directory("/test_input", test_input)
-            .with_(await secrets.mounted_connector_secrets(self.context, self.CONTAINER_SECRETS_DIRECTORY, self.secrets))
+            .with_(
+                await secrets.mounted_connector_secrets(
+                    self.context, self.CONTAINER_SECRETS_DIRECTORY, self.secrets
+                )
+            )
         )
         if "_EXPERIMENTAL_DAGGER_RUNNER_HOST" in os.environ:
-            self.context.logger.info("Using experimental dagger runner host to run CAT with dagger-in-dagger")
+            self.context.logger.info(
+                "Using experimental dagger runner host to run CAT with dagger-in-dagger"
+            )
             cat_container = cat_container.with_env_variable(
-                "_EXPERIMENTAL_DAGGER_RUNNER_HOST", "unix:///var/run/buildkit/buildkitd.sock"
+                "_EXPERIMENTAL_DAGGER_RUNNER_HOST",
+                "unix:///var/run/buildkit/buildkitd.sock",
             ).with_unix_socket(
-                "/var/run/buildkit/buildkitd.sock", self.context.dagger_client.host().unix_socket("/var/run/buildkit/buildkitd.sock")
+                "/var/run/buildkit/buildkitd.sock",
+                self.context.dagger_client.host().unix_socket(
+                    "/var/run/buildkit/buildkitd.sock"
+                ),
             )
 
-        return cat_container.with_unix_socket("/var/run/docker.sock", self.context.dagger_client.host().unix_socket("/var/run/docker.sock"))
+        return cat_container.with_unix_socket(
+            "/var/run/docker.sock",
+            self.context.dagger_client.host().unix_socket("/var/run/docker.sock"),
+        )
 
     def get_is_hard_failure(self) -> bool:
         """When a connector is not certified or the CI context is master, we consider the acceptance tests as hard failures:
@@ -323,7 +388,10 @@ class AcceptanceTests(Step):
         Returns:
             bool: Whether a failure of acceptance tests should be considered a hard failures.
         """
-        return self.context.connector.metadata.get("supportLevel") == "certified" or self.context.ci_context == CIContext.MASTER
+        return (
+            self.context.connector.metadata.get("supportLevel") == "certified"
+            or self.context.ci_context == CIContext.MASTER
+        )
 
     async def get_step_result(self, container: Container) -> StepResult:
         """Retrieve stdout, stderr and exit code from the executed CAT container.
@@ -366,7 +434,9 @@ class IncrementalAcceptanceTests(Step):
     title = "Incremental Acceptance Tests"
     context: ConnectorContext
 
-    async def get_failed_pytest_node_ids(self, current_acceptance_tests_report_log: Artifact) -> Set[str]:
+    async def get_failed_pytest_node_ids(
+        self, current_acceptance_tests_report_log: Artifact
+    ) -> Set[str]:
         """Parse the report log of the acceptance tests and return the pytest node ids of the failed tests.
 
         Args:
@@ -375,11 +445,16 @@ class IncrementalAcceptanceTests(Step):
         Returns:
             List[str]: The pytest node ids of the failed tests.
         """
-        current_report_lines = (await current_acceptance_tests_report_log.content.contents()).splitlines()
+        current_report_lines = (
+            await current_acceptance_tests_report_log.content.contents()
+        ).splitlines()
         failed_nodes = set()
         for line in current_report_lines:
             single_test_report = json.loads(line)
-            if "nodeid" not in single_test_report or "outcome" not in single_test_report:
+            if (
+                "nodeid" not in single_test_report
+                or "outcome" not in single_test_report
+            ):
                 continue
             if single_test_report["outcome"] == "failed":
                 failed_nodes.add(single_test_report["nodeid"])
@@ -394,13 +469,21 @@ class IncrementalAcceptanceTests(Step):
         Returns:
             Artifact: The report log of the acceptance tests run on the released image.
         """
-        raw_master_metadata = requests.get(f"{GITHUB_URL_PREFIX_FOR_CONNECTORS}/{self.context.connector.technical_name}/metadata.yaml")
+        raw_master_metadata = requests.get(
+            f"{GITHUB_URL_PREFIX_FOR_CONNECTORS}/{self.context.connector.technical_name}/metadata.yaml"
+        )
         master_metadata = yaml.safe_load(raw_master_metadata.text)
         master_docker_image_tag = master_metadata["data"]["dockerImageTag"]
-        released_image = f'{master_metadata["data"]["dockerRepository"]}:{master_docker_image_tag}'
+        released_image = (
+            f'{master_metadata["data"]["dockerRepository"]}:{master_docker_image_tag}'
+        )
         released_container = self.dagger_client.container().from_(released_image)
-        self.logger.info(f"Running acceptance tests on released image: {released_image}")
-        acceptance_tests_results_on_master = await AcceptanceTests(self.context, self.secrets).run(released_container)
+        self.logger.info(
+            f"Running acceptance tests on released image: {released_image}"
+        )
+        acceptance_tests_results_on_master = await AcceptanceTests(
+            self.context, self.secrets
+        ).run(released_container)
         return acceptance_tests_results_on_master.output["report_log"]
 
     async def _run(self, current_acceptance_tests_result: StepResult) -> StepResult:
@@ -409,17 +492,27 @@ class IncrementalAcceptanceTests(Step):
         """
         if current_acceptance_tests_result.consider_in_overall_status:
             return StepResult(
-                step=self, status=StepStatus.SKIPPED, stdout="Skipping because the current acceptance tests are hard failures."
+                step=self,
+                status=StepStatus.SKIPPED,
+                stdout="Skipping because the current acceptance tests are hard failures.",
             )
 
-        current_acceptance_tests_report_log = current_acceptance_tests_result.output["report_log"]
-        current_failing_nodes = await self.get_failed_pytest_node_ids(current_acceptance_tests_report_log)
+        current_acceptance_tests_report_log = current_acceptance_tests_result.output[
+            "report_log"
+        ]
+        current_failing_nodes = await self.get_failed_pytest_node_ids(
+            current_acceptance_tests_report_log
+        )
         if not current_failing_nodes:
             return StepResult(
-                step=self, status=StepStatus.SKIPPED, stdout="No failing acceptance tests were detected on the current version."
+                step=self,
+                status=StepStatus.SKIPPED,
+                stdout="No failing acceptance tests were detected on the current version.",
             )
 
-        master_failings = await self.get_failed_pytest_node_ids(await self.get_result_log_on_master())
+        master_failings = await self.get_failed_pytest_node_ids(
+            await self.get_result_log_on_master()
+        )
         new_failing_nodes = current_failing_nodes - master_failings
         if not new_failing_nodes:
             return StepResult(
@@ -473,11 +566,14 @@ class LiveTests(Step):
         Returns:
             dict: The default pytest options.
         """
-        return super().default_params | {
-            "-ra": [],  # Show extra test summary info in the report for all but the passed tests
-            "--disable-warnings": [],  # Disable warnings in the pytest report
-            "--durations": ["3"],  # Show the 3 slowest tests in the report
-        }
+        return (
+            super().default_params
+            | {
+                "-ra": [],  # Show extra test summary info in the report for all but the passed tests
+                "--disable-warnings": [],  # Disable warnings in the pytest report
+                "--durations": ["3"],  # Show the 3 slowest tests in the report
+            }
+        )
 
     @property
     def title(self) -> str:
@@ -555,28 +651,54 @@ class LiveTests(Step):
         """
         super().__init__(context)
         self.connector_image = context.docker_image.split(":")[0]
-        options = self.context.run_step_options.step_params.get(CONNECTOR_TEST_STEP_ID.CONNECTOR_LIVE_TESTS, {})
+        options = self.context.run_step_options.step_params.get(
+            CONNECTOR_TEST_STEP_ID.CONNECTOR_LIVE_TESTS, {}
+        )
 
-        self.connection_id = self.context.run_step_options.get_item_or_default(options, "connection-id", None)
-        self.pr_url = self.context.run_step_options.get_item_or_default(options, "pr-url", None)
+        self.connection_id = self.context.run_step_options.get_item_or_default(
+            options, "connection-id", None
+        )
+        self.pr_url = self.context.run_step_options.get_item_or_default(
+            options, "pr-url", None
+        )
 
         if not self.connection_id and self.pr_url:
-            raise ValueError("`connection-id` and `pr-url` are required to run live tests.")
+            raise ValueError(
+                "`connection-id` and `pr-url` are required to run live tests."
+            )
 
-        self.test_suite = self.context.run_step_options.get_item_or_default(options, "test-suite", LiveTestSuite.ALL.value)
+        self.test_suite = self.context.run_step_options.get_item_or_default(
+            options, "test-suite", LiveTestSuite.ALL.value
+        )
         self.test_dir = self.test_suite_to_dir[LiveTestSuite(self.test_suite)]
-        self.control_version = self.context.run_step_options.get_item_or_default(options, "control-version", None)
-        self.target_version = self.context.run_step_options.get_item_or_default(options, "target-version", "dev")
-        self.should_read_with_state = self.context.run_step_options.get_item_or_default(options, "should-read-with-state", "1")
-        self.selected_streams = self.context.run_step_options.get_item_or_default(options, "selected-streams", None)
-        self.test_evaluation_mode = "strict" if self.context.connector.metadata.get("supportLevel") == "certified" else "diagnostic"
-        self.connection_subset = self.context.run_step_options.get_item_or_default(options, "connection-subset", "sandboxes")
+        self.control_version = self.context.run_step_options.get_item_or_default(
+            options, "control-version", None
+        )
+        self.target_version = self.context.run_step_options.get_item_or_default(
+            options, "target-version", "dev"
+        )
+        self.should_read_with_state = self.context.run_step_options.get_item_or_default(
+            options, "should-read-with-state", "1"
+        )
+        self.selected_streams = self.context.run_step_options.get_item_or_default(
+            options, "selected-streams", None
+        )
+        self.test_evaluation_mode = (
+            "strict"
+            if self.context.connector.metadata.get("supportLevel") == "certified"
+            else "diagnostic"
+        )
+        self.connection_subset = self.context.run_step_options.get_item_or_default(
+            options, "connection-subset", "sandboxes"
+        )
         self.run_id = os.getenv("GITHUB_RUN_ID") or str(int(time.time()))
 
     def _validate_job_can_run(self) -> None:
         connector_type = self.context.connector.metadata.get("connectorType")
         connector_subtype = self.context.connector.metadata.get("connectorSubtype")
-        assert connector_type == "source", f"Live tests can only run against source connectors, got `connectorType={connector_type}`."
+        assert (
+            connector_type == "source"
+        ), f"Live tests can only run against source connectors, got `connectorType={connector_type}`."
         if connector_subtype == "database":
             assert (
                 self.connection_subset == "sandboxes"
@@ -600,14 +722,25 @@ class LiveTests(Step):
                 exc_info=exc,
             )
 
-        container = await self._build_test_container(await connector_under_test_container.id())
-        container = container.with_(hacks.never_fail_exec(self._run_command_with_proxy(" ".join(self._test_command()))))
+        container = await self._build_test_container(
+            await connector_under_test_container.id()
+        )
+        container = container.with_(
+            hacks.never_fail_exec(
+                self._run_command_with_proxy(" ".join(self._test_command()))
+            )
+        )
         tests_artifacts_dir = str(self.local_tests_artifacts_dir)
         path_to_report = f"{tests_artifacts_dir}/session_{self.run_id}/report.html"
 
         exit_code, stdout, stderr = await get_exec_result(container)
 
-        if "report.html" not in await container.directory(f"{tests_artifacts_dir}/session_{self.run_id}").entries():
+        if (
+            "report.html"
+            not in await container.directory(
+                f"{tests_artifacts_dir}/session_{self.run_id}"
+            ).entries()
+        ):
             main_logger.exception(
                 "The report file was not generated, an unhandled error likely happened during regression test execution, please check the step stderr and stdout for more details"
             )
@@ -629,7 +762,14 @@ class LiveTests(Step):
     async def _build_test_container(self, target_container_id: str) -> Container:
         """Create a container to run regression tests."""
         container = with_poetry(self.context)
-        container_requirements = ["apt-get", "install", "-y", "git", "curl", "docker.io"]
+        container_requirements = [
+            "apt-get",
+            "install",
+            "-y",
+            "git",
+            "curl",
+            "docker.io",
+        ]
         if not self.context.is_ci:
             # Outside of CI we use ssh to get the connection-retriever package from airbyte-platform-internal
             container_requirements += ["openssh-client"]
@@ -641,14 +781,18 @@ class LiveTests(Step):
             .with_mounted_directory("/app", self.context.live_tests_dir)
             .with_workdir("/app")
             # Enable dagger-in-dagger
-            .with_unix_socket("/var/run/docker.sock", self.dagger_client.host().unix_socket("/var/run/docker.sock"))
+            .with_unix_socket(
+                "/var/run/docker.sock",
+                self.dagger_client.host().unix_socket("/var/run/docker.sock"),
+            )
             .with_env_variable("RUN_IN_AIRBYTE_CI", "1")
             # The connector being tested is already built and is stored in a location accessible to an inner dagger kicked off by
             # regression tests. The connector can be found if you know the container ID, so we write the container ID to a file and put
             # it in the regression test container. This way regression tests will use the already-built connector instead of trying to
             # build their own.
             .with_new_file(
-                f"/tmp/{slugify(self.connector_image + ':' + self.target_version)}_container_id.txt", contents=str(target_container_id)
+                f"/tmp/{slugify(self.connector_image + ':' + self.target_version)}_container_id.txt",
+                contents=str(target_container_id),
             )
         )
 
@@ -678,7 +822,10 @@ class LiveTests(Step):
                 .with_secret_variable(
                     "CI_GITHUB_ACCESS_TOKEN",
                     self.context.dagger_client.set_secret(
-                        "CI_GITHUB_ACCESS_TOKEN", self.context.ci_github_access_token.value if self.context.ci_github_access_token else ""
+                        "CI_GITHUB_ACCESS_TOKEN",
+                        self.context.ci_github_access_token.value
+                        if self.context.ci_github_access_token
+                        else "",
                     ),
                 )
                 .with_exec(
@@ -689,8 +836,13 @@ class LiveTests(Step):
                     ]
                 )
                 # Add GCP credentials from the environment and point google to their location (also required for connection-retriever)
-                .with_new_file("/tmp/credentials.json", contents=os.getenv("GCP_INTEGRATION_TESTER_CREDENTIALS"))
-                .with_env_variable("GOOGLE_APPLICATION_CREDENTIALS", "/tmp/credentials.json")
+                .with_new_file(
+                    "/tmp/credentials.json",
+                    contents=os.getenv("GCP_INTEGRATION_TESTER_CREDENTIALS"),
+                )
+                .with_env_variable(
+                    "GOOGLE_APPLICATION_CREDENTIALS", "/tmp/credentials.json"
+                )
                 .with_exec(
                     [
                         "curl",
@@ -711,13 +863,31 @@ class LiveTests(Step):
 
         else:
             container = (
-                container.with_mounted_file("/root/.ssh/id_rsa", self.dagger_client.host().file(str(Path("~/.ssh/id_rsa").expanduser())))
-                .with_mounted_file("/root/.ssh/known_hosts", self.dagger_client.host().file(str(Path("~/.ssh/known_hosts").expanduser())))
+                container.with_mounted_file(
+                    "/root/.ssh/id_rsa",
+                    self.dagger_client.host().file(
+                        str(Path("~/.ssh/id_rsa").expanduser())
+                    ),
+                )
+                .with_mounted_file(
+                    "/root/.ssh/known_hosts",
+                    self.dagger_client.host().file(
+                        str(Path("~/.ssh/known_hosts").expanduser())
+                    ),
+                )
                 .with_mounted_file(
                     "/root/.config/gcloud/application_default_credentials.json",
-                    self.dagger_client.host().file(str(Path("~/.config/gcloud/application_default_credentials.json").expanduser())),
+                    self.dagger_client.host().file(
+                        str(
+                            Path(
+                                "~/.config/gcloud/application_default_credentials.json"
+                            ).expanduser()
+                        )
+                    ),
                 )
             )
 
-        container = container.with_exec(["poetry", "lock", "--no-update"]).with_exec(["poetry", "install"])
+        container = container.with_exec(["poetry", "lock", "--no-update"]).with_exec(
+            ["poetry", "install"]
+        )
         return container

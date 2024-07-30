@@ -14,14 +14,20 @@ from anyio import Semaphore
 from connector_ops.utils import Connector  # type: ignore
 from connectors_insights.insights import generate_insights_for_connector
 from connectors_insights.result_backends import GCSBucket, LocalDir
-from connectors_insights.utils import gcs_uri_to_bucket_key, get_all_connectors_in_directory, remove_strict_encrypt_suffix
+from connectors_insights.utils import (
+    gcs_uri_to_bucket_key,
+    get_all_connectors_in_directory,
+    remove_strict_encrypt_suffix,
+)
 
 if TYPE_CHECKING:
     from typing import List
 
     from connectors_insights.result_backends import ResultBackend
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
@@ -31,7 +37,9 @@ async def connectors_insights() -> None:
     pass
 
 
-@connectors_insights.command("generate", help="Generate connector insights the given connectors.")
+@connectors_insights.command(
+    "generate", help="Generate connector insights the given connectors."
+)
 @click.option(
     "-n",
     "--name",
@@ -83,7 +91,6 @@ async def generate(
     concurrency: int,
     rewrite: bool,
 ) -> None:
-
     logger = logging.getLogger(__name__)
     result_backends: List[ResultBackend] = []
     if output_directory:
@@ -92,11 +99,16 @@ async def generate(
         result_backends.append(GCSBucket(*gcs_uri_to_bucket_key(gcs_uri)))
     connectors: List[Connector] = []
     if selected_connectors:
-        connectors += [Connector(remove_strict_encrypt_suffix(connector)) for connector in selected_connectors]
+        connectors += [
+            Connector(remove_strict_encrypt_suffix(connector))
+            for connector in selected_connectors
+        ]
     if connector_directory:
         connectors += get_all_connectors_in_directory(connector_directory)
 
-    connectors = sorted(list(connectors), key=lambda connector: connector.technical_name, reverse=True)
+    connectors = sorted(
+        list(connectors), key=lambda connector: connector.technical_name, reverse=True
+    )
 
     if not connectors:
         raise click.UsageError(
@@ -118,6 +130,13 @@ async def generate(
                         result_backends=result_backends,
                     )
                 )
-    failing_connector_names = [soon_result.value[1].technical_name for soon_result in soon_results if not soon_result.value[0]]
+    failing_connector_names = [
+        soon_result.value[1].technical_name
+        for soon_result in soon_results
+        if not soon_result.value[0]
+    ]
     if failing_connector_names:
-        raise click.ClickException("Failed to generate insights for the following connectors: " + ", ".join(failing_connector_names))
+        raise click.ClickException(
+            "Failed to generate insights for the following connectors: "
+            + ", ".join(failing_connector_names)
+        )

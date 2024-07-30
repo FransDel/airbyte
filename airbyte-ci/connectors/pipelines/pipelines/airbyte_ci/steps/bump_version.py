@@ -46,24 +46,34 @@ class SetConnectorVersion(Step):
         self.connector_directory = connector_directory
 
     @staticmethod
-    async def _set_version_in_metadata(new_version: str, connector_directory: dagger.Directory) -> dagger.Directory:
+    async def _set_version_in_metadata(
+        new_version: str, connector_directory: dagger.Directory
+    ) -> dagger.Directory:
         raw_metadata = await dagger_read_file(connector_directory, METADATA_FILE_NAME)
         current_metadata = yaml.safe_load(raw_metadata)
 
         try:
             current_version = current_metadata["data"]["dockerImageTag"]
         except KeyError:
-            raise ConnectorVersionNotFoundError("dockerImageTag not found in metadata file")
+            raise ConnectorVersionNotFoundError(
+                "dockerImageTag not found in metadata file"
+            )
 
         # We use replace here instead of mutating the deserialized yaml to avoid messing up with the comments in the metadata file.
-        new_raw_metadata = raw_metadata.replace("dockerImageTag: " + current_version, "dockerImageTag: " + new_version)
-        updated_connector_dir = dagger_write_file(connector_directory, METADATA_FILE_NAME, new_raw_metadata)
+        new_raw_metadata = raw_metadata.replace(
+            "dockerImageTag: " + current_version, "dockerImageTag: " + new_version
+        )
+        updated_connector_dir = dagger_write_file(
+            connector_directory, METADATA_FILE_NAME, new_raw_metadata
+        )
 
         return updated_connector_dir
 
     @staticmethod
     async def _set_version_in_poetry_package(
-        container_with_poetry: dagger.Container, connector_directory: dagger.Directory, new_version: str
+        container_with_poetry: dagger.Container,
+        connector_directory: dagger.Directory,
+        new_version: str,
     ) -> dagger.Directory:
         try:
             connector_directory_with_updated_pyproject = await (
@@ -73,13 +83,19 @@ class SetConnectorVersion(Step):
                 .directory("/connector")
             )
         except dagger.ExecError as e:
-            raise PoetryVersionBumpError(f"Failed to bump version in pyproject.toml: {e}")
+            raise PoetryVersionBumpError(
+                f"Failed to bump version in pyproject.toml: {e}"
+            )
         return connector_directory_with_updated_pyproject
 
     async def _run(self) -> StepResult:
-        original_connector_directory = self.connector_directory or await self.context.get_connector_dir()
+        original_connector_directory = (
+            self.connector_directory or await self.context.get_connector_dir()
+        )
         try:
-            updated_connector_directory = await self._set_version_in_metadata(self.new_version, original_connector_directory)
+            updated_connector_directory = await self._set_version_in_metadata(
+                self.new_version, original_connector_directory
+            )
             self.modified_files.append(METADATA_FILE_NAME)
         except (FileNotFoundError, ConnectorVersionNotFoundError) as e:
             return StepResult(
@@ -120,7 +136,11 @@ class BumpConnectorVersion(SetConnectorVersion):
         connector_directory: dagger.Directory | None = None,
     ) -> None:
         self.bump_type = bump_type
-        super().__init__(context, self.get_bumped_version(context.connector.version, bump_type), connector_directory=connector_directory)
+        super().__init__(
+            context,
+            self.get_bumped_version(context.connector.version, bump_type),
+            connector_directory=connector_directory,
+        )
 
     @property
     def title(self) -> str:

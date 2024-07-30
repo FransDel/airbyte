@@ -11,7 +11,6 @@ from airbyte_cdk.sources.declarative.schema.json_file_schema_loader import JsonF
 
 @dataclass
 class BambooHRSchemaLoader(JsonFileSchemaLoader):
-
     config: Mapping[str, Any]
     parameters: InitVar[Mapping[str, Any]] = {"name": "custom_reports_stream"}
 

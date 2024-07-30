@@ -51,15 +51,23 @@ async def test_read(
         [read_target_execution_result],
     )
     for stream in configured_catalog.streams:
-        records = read_target_execution_result.get_records_per_stream(stream.stream.name)
-        state_messages = read_target_execution_result.get_states_per_stream(stream.stream.name)
-        statuses = read_target_execution_result.get_status_messages_per_stream(stream.stream.name)
+        records = read_target_execution_result.get_records_per_stream(
+            stream.stream.name
+        )
+        state_messages = read_target_execution_result.get_states_per_stream(
+            stream.stream.name
+        )
+        statuses = read_target_execution_result.get_status_messages_per_stream(
+            stream.stream.name
+        )
         primary_key = primary_keys_per_stream.get(stream.stream.name)
 
         for record in records:
             has_records = True
             if not conforms_to_schema(record.record.data, stream.schema()):
-                errors.append(f"A record was encountered that does not conform to the schema. stream={stream.stream.name} record={record}")
+                errors.append(
+                    f"A record was encountered that does not conform to the schema. stream={stream.stream.name} record={record}"
+                )
             if primary_key:
                 if _extract_primary_key_value(record.dict(), primary_key) is None:
                     errors.append(
@@ -70,15 +78,25 @@ async def test_read(
                     f"At least one state message should be emitted per stream, but no state messages were emitted for {stream.stream.name}."
                 )
             try:
-                _validate_state_messages(state_messages=state_messages[stream.stream.name], configured_catalog=configured_catalog)
+                _validate_state_messages(
+                    state_messages=state_messages[stream.stream.name],
+                    configured_catalog=configured_catalog,
+                )
             except AssertionError as exc:
                 warnings.append(
                     f"Invalid state message for stream {stream.stream.name}. exc={exc} state_messages={state_messages[stream.stream.name]}"
                 )
             if stream.stream.name not in statuses:
-                warnings.append(f"No stream statuses were emitted for stream {stream.stream.name}.")
-            if not _validate_stream_statuses(configured_catalog=configured_catalog, statuses=statuses[stream.stream.name]):
-                errors.append(f"Invalid statuses for stream {stream.stream.name}. statuses={statuses[stream.stream.name]}")
+                warnings.append(
+                    f"No stream statuses were emitted for stream {stream.stream.name}."
+                )
+            if not _validate_stream_statuses(
+                configured_catalog=configured_catalog,
+                statuses=statuses[stream.stream.name],
+            ):
+                errors.append(
+                    f"Invalid statuses for stream {stream.stream.name}. statuses={statuses[stream.stream.name]}"
+                )
     if not has_records:
         errors.append("At least one record should be read using provided catalog.")
 
@@ -88,15 +106,24 @@ async def test_read(
             logger.info(error)
 
 
-def _extract_primary_key_value(record: Mapping[str, Any], primary_key: List[List[str]]) -> dict[Tuple[str], Any]:
+def _extract_primary_key_value(
+    record: Mapping[str, Any], primary_key: List[List[str]]
+) -> dict[Tuple[str], Any]:
     pk_values = {}
     for pk_path in primary_key:
-        pk_value: Any = reduce(lambda data, key: data.get(key) if isinstance(data, dict) else None, pk_path, record)
+        pk_value: Any = reduce(
+            lambda data, key: data.get(key) if isinstance(data, dict) else None,
+            pk_path,
+            record,
+        )
         pk_values[tuple(pk_path)] = pk_value
     return pk_values
 
 
-def _validate_stream_statuses(configured_catalog: ConfiguredAirbyteCatalog, statuses: List[AirbyteStreamStatusTraceMessage]):
+def _validate_stream_statuses(
+    configured_catalog: ConfiguredAirbyteCatalog,
+    statuses: List[AirbyteStreamStatusTraceMessage],
+):
     """Validate all statuses for all streams in the catalogs were emitted in correct order:
     1. STARTED
     2. RUNNING (can be >1)
@@ -104,11 +131,13 @@ def _validate_stream_statuses(configured_catalog: ConfiguredAirbyteCatalog, stat
     """
     stream_statuses = defaultdict(list)
     for status in statuses:
-        stream_statuses[f"{status.stream_descriptor.namespace}-{status.stream_descriptor.name}"].append(status.status)
+        stream_statuses[
+            f"{status.stream_descriptor.namespace}-{status.stream_descriptor.name}"
+        ].append(status.status)
 
-    assert set(f"{x.stream.namespace}-{x.stream.name}" for x in configured_catalog.streams) == set(
-        stream_statuses
-    ), "All stream must emit status"
+    assert set(
+        f"{x.stream.namespace}-{x.stream.name}" for x in configured_catalog.streams
+    ) == set(stream_statuses), "All stream must emit status"
 
     for stream_name, status_list in stream_statuses.items():
         assert (
@@ -119,7 +148,10 @@ def _validate_stream_statuses(configured_catalog: ConfiguredAirbyteCatalog, stat
         assert all(x == AirbyteStreamStatus.RUNNING for x in status_list[1:-1])
 
 
-def _validate_state_messages(state_messages: List[AirbyteStateMessage], configured_catalog: ConfiguredAirbyteCatalog):
+def _validate_state_messages(
+    state_messages: List[AirbyteStateMessage],
+    configured_catalog: ConfiguredAirbyteCatalog,
+):
     # Ensure that at least one state message is emitted for each stream
     assert len(state_messages) >= len(
         configured_catalog.streams
@@ -136,4 +168,6 @@ def _validate_state_messages(state_messages: List[AirbyteStateMessage], configur
         )
 
         # Check if stats are of the correct type and present in state message
-        assert isinstance(state_message.sourceStats, AirbyteStateStats), "Source stats should be in state message."
+        assert isinstance(
+            state_message.sourceStats, AirbyteStateStats
+        ), "Source stats should be in state message."

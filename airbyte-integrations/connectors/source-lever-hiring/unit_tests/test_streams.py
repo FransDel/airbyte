@@ -37,19 +37,21 @@ def test_parse_response(requests_mock, config_pass, users_url, auth_url, auth_to
     requests_mock.get(url=users_url, status_code=200, json=mock_users_response_no_next)
     requests_mock.post(url=auth_url, json=auth_token)
     stream = get_stream_by_name("users", config_pass)
-    expected_parsed_records = [{
-        "id": "fake_id",
-        "name": "fake_name",
-        "contact": "fake_contact",
-        "headline": "Airbyte",
-        "stage": "offer",
-        "confidentiality": "non-confidential",
-        "location": "Los Angeles, CA",
-        "origin": "referred",
-        "createdAt": 1628510997134,
-        "updatedAt": 1628542848755,
-        "isAnonymized": False,
-    }]
+    expected_parsed_records = [
+        {
+            "id": "fake_id",
+            "name": "fake_name",
+            "contact": "fake_contact",
+            "headline": "Airbyte",
+            "stage": "offer",
+            "confidentiality": "non-confidential",
+            "location": "Los Angeles, CA",
+            "origin": "referred",
+            "createdAt": 1628510997134,
+            "updatedAt": 1628542848755,
+            "isAnonymized": False,
+        }
+    ]
     records = []
     for stream_slice in stream.stream_slices(sync_mode=SyncMode.full_refresh):
         records.extend(list(stream.read_records(sync_mode=SyncMode.full_refresh, stream_slice=stream_slice)))

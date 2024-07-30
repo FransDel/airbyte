@@ -36,7 +36,10 @@ class RestoreVersionState(Step):
         else:
             self.poetry_content = None
 
-        if connector.documentation_file_path and connector.documentation_file_path.is_file():
+        if (
+            connector.documentation_file_path
+            and connector.documentation_file_path.is_file()
+        ):
             self.documentation_content = connector.documentation_file_path.read_text()
         else:
             self.documentation_content = None
@@ -86,11 +89,18 @@ async def run_connector_version_bump_pipeline(
 
             updated_connector_directory = bump_version_result.output
             for modified_file in bump_version.modified_files:
-                await updated_connector_directory.file(modified_file).export(str(context.connector.code_directory / modified_file))
-                context.logger.info(f"Exported {modified_file} following the version bump.")
+                await updated_connector_directory.file(modified_file).export(
+                    str(context.connector.code_directory / modified_file)
+                )
+                context.logger.info(
+                    f"Exported {modified_file} following the version bump."
+                )
 
             add_changelog_entry = AddChangelogEntry(
-                context, bump_version.new_version, changelog_entry, pull_request_number=pull_request_number
+                context,
+                bump_version.new_version,
+                changelog_entry,
+                pull_request_number=pull_request_number,
             )
             add_changelog_entry_result = await add_changelog_entry.run()
             steps_results.append(add_changelog_entry_result)
@@ -101,8 +111,12 @@ async def run_connector_version_bump_pipeline(
 
             # Files modified by AddChangelogEntry are relative to airbyte repo root
             for modified_file in add_changelog_entry.modified_files:
-                await add_changelog_entry_result.output.file(str(modified_file)).export(str(modified_file))
-                context.logger.info(f"Exported {modified_file} following the changelog entry addition.")
+                await add_changelog_entry_result.output.file(str(modified_file)).export(
+                    str(modified_file)
+                )
+                context.logger.info(
+                    f"Exported {modified_file} following the changelog entry addition."
+                )
 
             report = ConnectorReport(context, steps_results, name=report_name)
             context.report = report

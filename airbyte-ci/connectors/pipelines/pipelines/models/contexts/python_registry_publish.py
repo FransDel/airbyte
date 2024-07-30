@@ -66,7 +66,8 @@ class PythonRegistryPublishContext(PipelineContext):
 
     @classmethod
     async def from_publish_connector_context(
-        cls: Type["PythonRegistryPublishContext"], connector_context: PublishConnectorContext
+        cls: Type["PythonRegistryPublishContext"],
+        connector_context: PublishConnectorContext,
     ) -> Optional["PythonRegistryPublishContext"]:
         """
         Create a PythonRegistryPublishContext from a ConnectorContext.
@@ -91,7 +92,9 @@ class PythonRegistryPublishContext(PipelineContext):
             release_candidate_tag = datetime.now().strftime("%Y%m%d%H%M")
             version = f"{version}.dev{release_candidate_tag}"
 
-        assert connector_context.python_registry_token is not None, "The connector context must have python_registry_token Secret attribute"
+        assert (
+            connector_context.python_registry_token is not None
+        ), "The connector context must have python_registry_token Secret attribute"
         pypi_context = cls(
             python_registry_token=connector_context.python_registry_token,
             registry=str(connector_context.python_registry_url),

@@ -9,7 +9,11 @@ from typing import List, Optional
 import asyncclick as click
 from github import PullRequest
 from pipelines.airbyte_ci.connectors.context import ConnectorContext
-from pipelines.consts import PUBLISH_FAILURE_SLACK_CHANNEL, PUBLISH_UPDATES_SLACK_CHANNEL, ContextState
+from pipelines.consts import (
+    PUBLISH_FAILURE_SLACK_CHANNEL,
+    PUBLISH_UPDATES_SLACK_CHANNEL,
+    ContextState,
+)
 from pipelines.helpers.connectors.modifed import ConnectorWithModifiedFiles
 from pipelines.helpers.github import AIRBYTE_GITHUB_REPO_URL_PREFIX
 from pipelines.helpers.utils import format_duration
@@ -57,10 +61,14 @@ class PublishConnectorContext(ConnectorContext):
         self.python_registry_url = python_registry_url
         self.python_registry_check_url = python_registry_check_url
         pipeline_name = f"Publish {connector.technical_name}"
-        pipeline_name = pipeline_name + " (pre-release)" if pre_release else pipeline_name
+        pipeline_name = (
+            pipeline_name + " (pre-release)" if pre_release else pipeline_name
+        )
 
         if use_local_cdk and not self.pre_release:
-            raise click.UsageError("Publishing with the local CDK is only supported for pre-release publishing.")
+            raise click.UsageError(
+                "Publishing with the local CDK is only supported for pre-release publishing."
+            )
 
         super().__init__(
             pipeline_name=pipeline_name,
@@ -113,7 +121,6 @@ class PublishConnectorContext(ConnectorContext):
             return [PUBLISH_UPDATES_SLACK_CHANNEL]
 
     def create_slack_message(self) -> str:
-
         docker_hub_url = f"https://hub.docker.com/r/{self.connector.metadata['dockerRepository']}/tags"
         message = f"*Publish <{docker_hub_url}|{self.docker_image}>*\n"
         if self.is_ci:
@@ -134,7 +141,9 @@ class PublishConnectorContext(ConnectorContext):
             message += "🔴"
         message += f" {self.state.value['description']}\n"
         if self.state is ContextState.SUCCESSFUL:
-            assert self.report is not None, "Report should be set when state is successful"
+            assert (
+                self.report is not None
+            ), "Report should be set when state is successful"
             message += f"⏲️ Run duration: {format_duration(self.report.run_duration)}\n"
         if self.state is ContextState.FAILURE:
             message += "\ncc. <!subteam^S077R8636CV>"

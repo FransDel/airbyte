@@ -13,7 +13,9 @@ if TYPE_CHECKING:
     from anyio import Semaphore
 
 
-def get_connector_contexts(ctx: click.Context, pipeline_description: str, enable_report_auto_open: bool) -> List[ConnectorContext]:
+def get_connector_contexts(
+    ctx: click.Context, pipeline_description: str, enable_report_auto_open: bool
+) -> List[ConnectorContext]:
     connectors_contexts = [
         ConnectorContext(
             pipeline_name=f"{pipeline_description}: {connector.technical_name}",
@@ -50,7 +52,9 @@ async def run_connector_pipeline(
     connector_pipeline: Callable,
     *args: Any,
 ) -> bool:
-    connectors_contexts = get_connector_contexts(ctx, pipeline_description, enable_report_auto_open=enable_report_auto_open)
+    connectors_contexts = get_connector_contexts(
+        ctx, pipeline_description, enable_report_auto_open=enable_report_auto_open
+    )
     await run_connectors_pipelines(
         connectors_contexts,
         connector_pipeline,
@@ -65,7 +69,10 @@ async def run_connector_pipeline(
 
 
 async def run_connector_steps(
-    context: ConnectorContext, semaphore: "Semaphore", steps_to_run: STEP_TREE, restore_original_state: Step | None = None
+    context: ConnectorContext,
+    semaphore: "Semaphore",
+    steps_to_run: STEP_TREE,
+    restore_original_state: Step | None = None,
 ) -> Report:
     async with semaphore:
         async with context:
@@ -80,7 +87,9 @@ async def run_connector_steps(
                 raise e
             results = list(result_dict.values())
             if restore_original_state:
-                if any(step_result.status is StepStatus.FAILURE for step_result in results):
+                if any(
+                    step_result.status is StepStatus.FAILURE for step_result in results
+                ):
                     await restore_original_state.run()
                 else:
                     # cleanup if available
@@ -89,6 +98,8 @@ async def run_connector_steps(
                         if callable(method):
                             await method()
 
-            report = ConnectorReport(context, steps_results=results, name="TEST RESULTS")
+            report = ConnectorReport(
+                context, steps_results=results, name="TEST RESULTS"
+            )
             context.report = report
     return report

@@ -23,7 +23,9 @@ async def dagger_read_file(directory: Directory, path: Path | str) -> str:
     return content
 
 
-def dagger_write_file(directory: Directory, path: Path | str, new_content: str) -> Directory:
+def dagger_write_file(
+    directory: Directory, path: Path | str, new_content: str
+) -> Directory:
     directory = directory.with_new_file(str(path), contents=new_content)
     return directory
 

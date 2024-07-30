@@ -8,9 +8,13 @@ from airbyte_cdk.sources.types import StreamSlice
 @pytest.mark.parametrize(
     "stream_state, expected_slice",
     [
-        pytest.param({"updated_at": "2024-04-30"}, StreamSlice(cursor_slice={"updated_at": "2024-04-30"}, partition={}), id="test_set_incoming_stream_state"),
+        pytest.param(
+            {"updated_at": "2024-04-30"},
+            StreamSlice(cursor_slice={"updated_at": "2024-04-30"}, partition={}),
+            id="test_set_incoming_stream_state",
+        ),
         pytest.param({}, StreamSlice(cursor_slice={}, partition={}), id="test_empty_stream_state"),
-    ]
+    ],
 )
 def test_stream_slices(stream_state, expected_slice):
     cursor = ResumableFullRefreshCursor(parameters={})

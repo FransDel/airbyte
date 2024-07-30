@@ -40,9 +40,7 @@ class MockStream(DeclarativeStream):
         self._slices = slices
         self._records = records
         self._stream_cursor_field = (
-            InterpolatedString.create(cursor_field, parameters={})
-            if isinstance(cursor_field, str)
-            else cursor_field
+            InterpolatedString.create(cursor_field, parameters={}) if isinstance(cursor_field, str) else cursor_field
         )
         self._name = name
         self._state = {"states": []}
@@ -310,15 +308,17 @@ def test_substream_partition_router(parent_stream_configs, expected_slices):
 
 def test_substream_partition_router_invalid_parent_record_type():
     partition_router = SubstreamPartitionRouter(
-        parent_stream_configs=[ParentStreamConfig(
-            stream=MockStream([{}], [list()], "first_stream"),
-            parent_key="id",
-            partition_field="first_stream_id",
-            parameters={},
-            config={},
-        )],
+        parent_stream_configs=[
+            ParentStreamConfig(
+                stream=MockStream([{}], [list()], "first_stream"),
+                parent_key="id",
+                partition_field="first_stream_id",
+                parameters={},
+                config={},
+            )
+        ],
         parameters={},
-        config={}
+        config={},
     )
 
     with pytest.raises(AirbyteTracedException):
@@ -663,7 +663,7 @@ def test_substream_checkpoints_after_each_parent_partition():
     [
         pytest.param(False, id="test_resumable_full_refresh_stream_without_parent_checkpoint"),
         pytest.param(True, id="test_resumable_full_refresh_stream_with_use_incremental_dependency_for_parent_checkpoint"),
-    ]
+    ],
 )
 def test_substream_using_resumable_full_refresh_parent_stream(use_incremental_dependency):
     mock_slices = [
@@ -686,8 +686,8 @@ def test_substream_using_resumable_full_refresh_parent_stream(use_incremental_de
         {"next_page_token": 2},
         {"next_page_token": 3},
         {"next_page_token": 3},
-        {'__ab_full_refresh_sync_complete': True},
-        {'__ab_full_refresh_sync_complete': True},
+        {"__ab_full_refresh_sync_complete": True},
+        {"__ab_full_refresh_sync_complete": True},
     ]
 
     partition_router = SubstreamPartitionRouter(

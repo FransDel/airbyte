@@ -300,7 +300,6 @@ class TestRequestBody:
         return json.dumps({"body": request.text, "content_type": request.headers.get("Content-Type")})
 
     def test_json_body(self, mocker, requests_mock):
-
         stream = PostHttpStream()
         mocker.patch.object(stream, "request_body_json", return_value=self.json_body)
 
@@ -311,7 +310,6 @@ class TestRequestBody:
         assert json.loads(response["body"]) == self.json_body
 
     def test_text_body(self, mocker, requests_mock):
-
         stream = PostHttpStream()
         mocker.patch.object(stream, "request_body_data", return_value=self.data_body)
 
@@ -322,7 +320,6 @@ class TestRequestBody:
         assert response["body"] == self.data_body
 
     def test_form_body(self, mocker, requests_mock):
-
         stream = PostHttpStream()
         mocker.patch.object(stream, "request_body_data", return_value=self.form_body)
 
@@ -489,15 +486,13 @@ class AutoFailTrueHttpStream(StubBasicReadHttpStream):
     [
         (300, True, True, ResponseAction.RETRY),
         (200, False, True, ResponseAction.SUCCESS),
-        (503, False,True, ResponseAction.FAIL),
-        (503,False,False, ResponseAction.IGNORE)
-    ]
+        (503, False, True, ResponseAction.FAIL),
+        (503, False, False, ResponseAction.IGNORE),
+    ],
 )
-def test_http_stream_adapter_http_status_error_handler_should_retry_false_raise_on_http_errors(mocker,
-                                                                                               response_status_code: int,
-                                                                                               should_retry: bool,
-                                                                                               raise_on_http_errors: bool,
-                                                                                               expected_response_action: ResponseAction):
+def test_http_stream_adapter_http_status_error_handler_should_retry_false_raise_on_http_errors(
+    mocker, response_status_code: int, should_retry: bool, raise_on_http_errors: bool, expected_response_action: ResponseAction
+):
     stream = AutoFailTrueHttpStream()
     mocker.patch.object(stream, "should_retry", return_value=should_retry)
     mocker.patch.object(stream, "raise_on_http_errors", raise_on_http_errors)
@@ -658,14 +653,23 @@ def test_join_url(test_name, base_url, path, expected_full_url):
     ],
 )
 def test_duplicate_request_params_are_deduped(deduplicate_query_params, path, params, expected_url):
-
     stream = StubBasicReadHttpStream(deduplicate_query_params)
 
     if expected_url is None:
         with pytest.raises(ValueError):
-            stream._http_client._create_prepared_request(http_method=stream.http_method, url=stream._join_url(stream.url_base, path), params=params, dedupe_query_params=deduplicate_query_params)
+            stream._http_client._create_prepared_request(
+                http_method=stream.http_method,
+                url=stream._join_url(stream.url_base, path),
+                params=params,
+                dedupe_query_params=deduplicate_query_params,
+            )
     else:
-        prepared_request = stream._http_client._create_prepared_request(http_method=stream.http_method, url=stream._join_url(stream.url_base, path), params=params, dedupe_query_params=deduplicate_query_params)
+        prepared_request = stream._http_client._create_prepared_request(
+            http_method=stream.http_method,
+            url=stream._join_url(stream.url_base, path),
+            params=params,
+            dedupe_query_params=deduplicate_query_params,
+        )
         assert prepared_request.url == expected_url
 
 
@@ -688,8 +692,13 @@ class StubParentHttpStream(HttpStream, CheckpointMixin):
     def url_base(self) -> str:
         return "https://airbyte.io/api/v1"
 
-    def path(self, *, stream_state: Optional[Mapping[str, Any]] = None, stream_slice: Optional[Mapping[str, Any]] = None,
-             next_page_token: Optional[Mapping[str, Any]] = None) -> str:
+    def path(
+        self,
+        *,
+        stream_state: Optional[Mapping[str, Any]] = None,
+        stream_slice: Optional[Mapping[str, Any]] = None,
+        next_page_token: Optional[Mapping[str, Any]] = None,
+    ) -> str:
         return "/stub"
 
     def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
@@ -708,12 +717,12 @@ class StubParentHttpStream(HttpStream, CheckpointMixin):
         self.state = {"__ab_full_refresh_sync_complete": True}
 
     def parse_response(
-            self,
-            response: requests.Response,
-            *,
-            stream_state: Mapping[str, Any],
-            stream_slice: Optional[Mapping[str, Any]] = None,
-            next_page_token: Optional[Mapping[str, Any]] = None
+        self,
+        response: requests.Response,
+        *,
+        stream_state: Mapping[str, Any],
+        stream_slice: Optional[Mapping[str, Any]] = None,
+        next_page_token: Optional[Mapping[str, Any]] = None,
     ) -> Iterable[Mapping[str, Any]]:
         return []
 
@@ -735,8 +744,13 @@ class StubParentResumableFullRefreshStream(HttpStream, CheckpointMixin):
     def url_base(self) -> str:
         return "https://airbyte.io/api/v1"
 
-    def path(self, *, stream_state: Optional[Mapping[str, Any]] = None, stream_slice: Optional[Mapping[str, Any]] = None,
-             next_page_token: Optional[Mapping[str, Any]] = None) -> str:
+    def path(
+        self,
+        *,
+        stream_state: Optional[Mapping[str, Any]] = None,
+        stream_slice: Optional[Mapping[str, Any]] = None,
+        next_page_token: Optional[Mapping[str, Any]] = None,
+    ) -> str:
         return "/stub"
 
     def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
@@ -758,12 +772,12 @@ class StubParentResumableFullRefreshStream(HttpStream, CheckpointMixin):
             self.state = {"__ab_full_refresh_sync_complete": True}
 
     def parse_response(
-            self,
-            response: requests.Response,
-            *,
-            stream_state: Mapping[str, Any],
-            stream_slice: Optional[Mapping[str, Any]] = None,
-            next_page_token: Optional[Mapping[str, Any]] = None
+        self,
+        response: requests.Response,
+        *,
+        stream_state: Mapping[str, Any],
+        stream_slice: Optional[Mapping[str, Any]] = None,
+        next_page_token: Optional[Mapping[str, Any]] = None,
     ) -> Iterable[Mapping[str, Any]]:
         return []
 
@@ -778,8 +792,13 @@ class StubHttpSubstream(HttpSubStream):
     def url_base(self) -> str:
         return "https://airbyte.io/api/v1"
 
-    def path(self, *, stream_state: Optional[Mapping[str, Any]] = None, stream_slice: Optional[Mapping[str, Any]] = None,
-             next_page_token: Optional[Mapping[str, Any]] = None) -> str:
+    def path(
+        self,
+        *,
+        stream_state: Optional[Mapping[str, Any]] = None,
+        stream_slice: Optional[Mapping[str, Any]] = None,
+        next_page_token: Optional[Mapping[str, Any]] = None,
+    ) -> str:
         return "/stub"
 
     def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
@@ -799,12 +818,12 @@ class StubHttpSubstream(HttpSubStream):
         ]
 
     def parse_response(
-            self,
-            response: requests.Response,
-            *,
-            stream_state: Mapping[str, Any],
-            stream_slice: Optional[Mapping[str, Any]] = None,
-            next_page_token: Optional[Mapping[str, Any]] = None
+        self,
+        response: requests.Response,
+        *,
+        stream_state: Mapping[str, Any],
+        stream_slice: Optional[Mapping[str, Any]] = None,
+        next_page_token: Optional[Mapping[str, Any]] = None,
     ) -> Iterable[Mapping[str, Any]]:
         return []
 
@@ -840,7 +859,7 @@ def test_substream_with_resumable_full_refresh_parent():
         [
             {"id": "page_3_abc"},
             {"id": "page_3_def"},
-        ]
+        ],
     ]
 
     expected_slices = [
@@ -986,10 +1005,7 @@ def test_resumable_full_refresh_read_from_state(mocker):
         mocker.patch.object(stream, method, wraps=getattr(stream, method))
 
     checkpoint_reader = stream._get_checkpoint_reader(
-        cursor_field=[],
-        logger=logging.getLogger("airbyte"),
-        sync_mode=SyncMode.full_refresh,
-        stream_state={"page": 3}
+        cursor_field=[], logger=logging.getLogger("airbyte"), sync_mode=SyncMode.full_refresh, stream_state={"page": 3}
     )
     next_stream_slice = checkpoint_reader.next()
     records = []
@@ -1035,10 +1051,7 @@ def test_resumable_full_refresh_legacy_stream_slice(mocker):
         mocker.patch.object(stream, method, wraps=getattr(stream, method))
 
     checkpoint_reader = stream._get_checkpoint_reader(
-        cursor_field=[],
-        logger=logging.getLogger("airbyte"),
-        sync_mode=SyncMode.full_refresh,
-        stream_state={"page": 2}
+        cursor_field=[], logger=logging.getLogger("airbyte"), sync_mode=SyncMode.full_refresh, stream_state={"page": 2}
     )
     next_stream_slice = checkpoint_reader.next()
     records = []
@@ -1085,7 +1098,7 @@ class StubWithCursorFields(StubBasicReadHttpStream):
         pytest.param(["updated_at"], False, None, id="test_incremental_stream_does_not_use_cursor"),
         pytest.param([], True, None, id="test_substream_does_not_use_cursor"),
         pytest.param(["updated_at"], True, None, id="test_incremental_substream_does_not_use_cursor"),
-    ]
+    ],
 )
 def test_get_cursor(cursor_field, is_substream, expected_cursor):
     stream = StubWithCursorFields(set_cursor_field=cursor_field, has_multiple_slices=is_substream)

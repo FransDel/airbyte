@@ -28,7 +28,11 @@ FORBIDDEN_METHOD_NAMES = {"get_updated_state"}
 class ForbiddenMethodNameChecker(BaseChecker):
     name = "forbidden-method-name-checker"
     msgs = {
-        "C9001": ('Method name "%s" is forbidden', "forbidden-method-name", "Used when a forbidden method name is detected."),
+        "C9001": (
+            'Method name "%s" is forbidden',
+            "forbidden-method-name",
+            "Used when a forbidden method name is detected.",
+        ),
     }
 
     def visit_functiondef(self, node: astroid.node) -> None:

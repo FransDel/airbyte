@@ -38,7 +38,11 @@ class CreateOrUpdatePullRequest(Step):
         pr_body: str,
     ) -> StepResult:
         if self.context.ci_github_access_token is None:
-            return StepResult(step=self, status=StepStatus.FAILURE, stderr="No github access token provided")
+            return StepResult(
+                step=self,
+                status=StepStatus.FAILURE,
+                stderr="No github access token provided",
+            )
 
         try:
             pr = github.create_or_update_github_pull_request(
@@ -53,6 +57,8 @@ class CreateOrUpdatePullRequest(Step):
                 labels=self.labels,
             )
         except Exception as e:
-            return StepResult(step=self, status=StepStatus.FAILURE, stderr=str(e), exc_info=e)
+            return StepResult(
+                step=self, status=StepStatus.FAILURE, stderr=str(e), exc_info=e
+            )
 
         return StepResult(step=self, status=StepStatus.SUCCESS, output=pr)

@@ -34,7 +34,9 @@ class SecretString(str):
 class SecretStore(ABC):
     @abstractmethod
     def _fetch_secret(self, name: str) -> str:
-        raise NotImplementedError("SecretStore subclasses must implement a _fetch_secret method")
+        raise NotImplementedError(
+            "SecretStore subclasses must implement a _fetch_secret method"
+        )
 
     def fetch_secret(self, name: str) -> str:
         return SecretString(self._fetch_secret(name))
@@ -43,8 +45,14 @@ class SecretStore(ABC):
 class GSMSecretStore(SecretStore):
     def __init__(self, gcp_credentials: Secret) -> None:
         service_account_info = json.loads(gcp_credentials.value)
-        credentials = service_account.Credentials.from_service_account_info(service_account_info)
-        self.gsm_client = secretmanager_v1.SecretManagerServiceClient.from_service_account_info(service_account_info)
+        credentials = service_account.Credentials.from_service_account_info(
+            service_account_info
+        )
+        self.gsm_client = (
+            secretmanager_v1.SecretManagerServiceClient.from_service_account_info(
+                service_account_info
+            )
+        )
         # This assumes the service account can only read a single project: the one it was created on.
         # If we want to read secrets from multiple project we'd have to create a secret mapping (in an env var?)
         # Which would map secret store aliases to project ids.
@@ -67,7 +75,9 @@ class GSMSecretStore(SecretStore):
                 response = self.gsm_client.access_secret_version(request=request)
                 return response.payload.data.decode()
 
-        raise SecretNotFoundError(f"No enabled secret version in GSM found for secret {name}")
+        raise SecretNotFoundError(
+            f"No enabled secret version in GSM found for secret {name}"
+        )
 
 
 class EnvVarSecretStore(SecretStore):
@@ -81,7 +91,9 @@ class EnvVarSecretStore(SecretStore):
 class LocalDirectorySecretStore(SecretStore):
     def __init__(self, local_directory_path: Path) -> None:
         if not local_directory_path.exists() or not local_directory_path.is_dir():
-            raise ValueError(f"The path {local_directory_path} does not exists on your filesystem or is not a directory.")
+            raise ValueError(
+                f"The path {local_directory_path} does not exists on your filesystem or is not a directory."
+            )
         self.local_directory_path = local_directory_path
 
     def _fetch_secret(self, name: str) -> str:
@@ -116,7 +128,9 @@ class InMemorySecretStore(SecretStore):
         try:
             return self._store[name]
         except KeyError:
-            raise SecretNotFoundError(f"Secret named {name} can't be found in the in memory secret store")
+            raise SecretNotFoundError(
+                f"Secret named {name} can't be found in the in memory secret store"
+            )
 
 
 @dataclass

@@ -47,5 +47,8 @@ class CustomIncrementalSync(DatetimeBasedCursor):
     ) -> MutableMapping[str, Any]:
         params = {}
         if self.cursor_field in stream_state:
+            self.cursor_field = (
+                datetime.datetime.strptime(self.cursor_field, "%Y-%m-%dT%H:%M:%S.%fZ") - datetime.timedelta(days=1)
+            ).strftime("%Y-%m-%dT%H:%M:%S.000Z")
             params[f"filter[{self.cursor_field}]"] = stream_state[self.cursor_field] + "..inf"
         return params

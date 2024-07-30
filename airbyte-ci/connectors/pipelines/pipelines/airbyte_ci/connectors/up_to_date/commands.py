@@ -5,7 +5,9 @@
 from typing import List
 
 import asyncclick as click
-from pipelines.airbyte_ci.connectors.up_to_date.pipeline import run_connector_up_to_date_pipeline
+from pipelines.airbyte_ci.connectors.up_to_date.pipeline import (
+    run_connector_up_to_date_pipeline,
+)
 from pipelines.cli.dagger_pipeline_command import DaggerPipelineCommand
 from pipelines.helpers.connectors.command import run_connector_pipeline
 
@@ -58,7 +60,6 @@ async def up_to_date(
     no_bump: bool,
     open_reports: bool,
 ) -> bool:
-
     if create_prs and not ctx.obj["ci_github_access_token"]:
         raise click.ClickException(
             "GitHub access token is required to create or simulate a pull request. Set the CI_GITHUB_ACCESS_TOKEN environment variable."

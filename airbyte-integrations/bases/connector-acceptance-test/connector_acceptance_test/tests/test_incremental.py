@@ -196,9 +196,7 @@ class TestIncremental(BaseTest):
         records_2 = filter_output(output_2, type_=Type.RECORD)
 
         diff = naive_diff_records(records_1, records_2)
-        assert (
-            diff
-        ), f"Records should change between reads but did not.\n\n records_1: {records_1} \n\n state: {state_input} \n\n records_2: {records_2} \n\n diff: {diff}"
+        assert diff, f"Records should change between reads but did not.\n\n records_1: {records_1} \n\n state: {state_input} \n\n records_2: {records_2} \n\n diff: {diff}"
 
     async def test_read_sequential_slices(
         self,
@@ -260,8 +258,7 @@ class TestIncremental(BaseTest):
 
                 assert (
                     # We assume that the output may be empty when we read the latest state, or it must produce some data if we are in the middle of our progression
-                    len(records_N)
-                    >= expected_records_count
+                    len(records_N) >= expected_records_count
                 ), f"Read {idx + 1} of {len(states_with_expected_record_count)} should produce at least one record.\n\n state: {state_input} \n\n records_{idx + 1}: {records_N}"
 
                 # Temporary comment this to avoid fake failures while handling corner cases such as:
@@ -337,9 +334,7 @@ class TestIncremental(BaseTest):
             expected_types = self._get_cursor_value_types(expected_cursor_value_schema_per_stream[stream.stream.name]["type"])
 
             for actual_cursor_value, future_state_cursor_value in zip(actual_cursor_values, future_state_cursor_values):
-
                 for _type in expected_types:
-
                     if actual_cursor_value:
                         assert isinstance(
                             actual_cursor_value, _type

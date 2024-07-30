@@ -15,7 +15,9 @@ if TYPE_CHECKING:
     from connector_ops.utils import Connector  # type: ignore
 
 
-TEST_SUMMARY_ROOT_URL = "https://connectors.airbyte.com/files/generated_reports/test_summary"
+TEST_SUMMARY_ROOT_URL = (
+    "https://connectors.airbyte.com/files/generated_reports/test_summary"
+)
 
 
 def get_ci_json_report(json_report_url: str) -> Dict:

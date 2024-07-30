@@ -9,13 +9,19 @@ from pathlib import Path
 from typing import List, Optional, Tuple
 
 from dagger import Client, File
-from pipelines.helpers.utils import get_exec_result, secret_host_variable, with_exit_code
+from pipelines.helpers.utils import (
+    get_exec_result,
+    secret_host_variable,
+    with_exit_code,
+)
 from pipelines.models.secrets import Secret
 
 GOOGLE_CLOUD_SDK_TAG = "425.0.0-slim"
 
 
-async def upload_to_s3(dagger_client: Client, file_to_upload_path: Path, key: str, bucket: str) -> int:
+async def upload_to_s3(
+    dagger_client: Client, file_to_upload_path: Path, key: str, bucket: str
+) -> int:
     """Upload a local file to S3 using the AWS CLI docker image and running aws s3 cp command.
 
     Args:
@@ -28,7 +34,11 @@ async def upload_to_s3(dagger_client: Client, file_to_upload_path: Path, key: st
         int: Exit code of the upload process.
     """
     s3_uri = f"s3://{bucket}/{key}"
-    file_to_upload: File = dagger_client.host().directory(".", include=[str(file_to_upload_path)]).file(str(file_to_upload_path))
+    file_to_upload: File = (
+        dagger_client.host()
+        .directory(".", include=[str(file_to_upload_path)])
+        .file(str(file_to_upload_path))
+    )
     return await with_exit_code(
         dagger_client.container()
         .from_("amazon/aws-cli:latest")
@@ -70,18 +80,32 @@ async def upload_to_gcs(
         dagger_client.container()
         .from_(f"google/cloud-sdk:{GOOGLE_CLOUD_SDK_TAG}")
         .with_workdir("/upload")
-        .with_mounted_secret("credentials.json", gcs_credentials.as_dagger_secret(dagger_client))
+        .with_mounted_secret(
+            "credentials.json", gcs_credentials.as_dagger_secret(dagger_client)
+        )
         .with_env_variable("GOOGLE_APPLICATION_CREDENTIALS", "/upload/credentials.json")
         .with_file("to_upload", file_to_upload)
     )
     if not cache_upload:
-        gcloud_container = gcloud_container.with_env_variable("CACHEBUSTER", str(uuid.uuid4()))
+        gcloud_container = gcloud_container.with_env_variable(
+            "CACHEBUSTER", str(uuid.uuid4())
+        )
     else:
         gcloud_container = gcloud_container.without_env_variable("CACHEBUSTER")
 
-    gcloud_auth_container = gcloud_container.with_exec(["gcloud", "auth", "login", "--cred-file=credentials.json"])
+    gcloud_auth_container = gcloud_container.with_exec(
+        ["gcloud", "auth", "login", "--cred-file=credentials.json"]
+    )
     if (await with_exit_code(gcloud_auth_container)) == 1:
-        gcloud_auth_container = gcloud_container.with_exec(["gcloud", "auth", "activate-service-account", "--key-file", "credentials.json"])
+        gcloud_auth_container = gcloud_container.with_exec(
+            [
+                "gcloud",
+                "auth",
+                "activate-service-account",
+                "--key-file",
+                "credentials.json",
+            ]
+        )
 
     gcloud_cp_container = gcloud_auth_container.with_exec(cp_command)
     return await get_exec_result(gcloud_cp_container)

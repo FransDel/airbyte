@@ -61,12 +61,18 @@ class SimpleDockerStep(Step):
                 file_to_load = self.context.get_repo_file(path_string)
                 container = container.with_mounted_file(destination_path, file_to_load)
             else:
-                container = container.with_mounted_directory(destination_path, self.context.get_repo_dir(path_string))
+                container = container.with_mounted_directory(
+                    destination_path, self.context.get_repo_dir(path_string)
+                )
         return container
 
-    async def _install_internal_tools(self, container: dagger.Container) -> dagger.Container:
+    async def _install_internal_tools(
+        self, container: dagger.Container
+    ) -> dagger.Container:
         for internal_tool in self.internal_tools:
-            container = await with_installed_pipx_package(self.context, container, str(internal_tool))
+            container = await with_installed_pipx_package(
+                self.context, container, str(internal_tool)
+            )
         return container
 
     def _set_workdir(self, container: dagger.Container) -> dagger.Container:
@@ -77,9 +83,13 @@ class SimpleDockerStep(Step):
             container = container.with_env_variable(key, value)
         return container
 
-    def _set_secret_env_variables(self, container: dagger.Container) -> dagger.Container:
+    def _set_secret_env_variables(
+        self, container: dagger.Container
+    ) -> dagger.Container:
         for env_var_name, secret in self.secret_env_variables.items():
-            container = container.with_secret_variable(env_var_name, secret.as_dagger_secret(self.context.dagger_client))
+            container = container.with_secret_variable(
+                env_var_name, secret.as_dagger_secret(self.context.dagger_client)
+            )
         return container
 
     async def init_container(self) -> dagger.Container:

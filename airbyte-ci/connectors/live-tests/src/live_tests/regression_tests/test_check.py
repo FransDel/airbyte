@@ -7,7 +7,11 @@ import pytest
 from airbyte_protocol.models import Status, Type  # type: ignore
 from live_tests.commons.models import ExecutionResult
 from live_tests.consts import MAX_LINES_IN_REPORT
-from live_tests.utils import fail_test_on_failing_execution_results, is_successful_check, tail_file
+from live_tests.utils import (
+    fail_test_on_failing_execution_results,
+    is_successful_check,
+    tail_file,
+)
 
 pytestmark = [
     pytest.mark.anyio,
@@ -37,14 +41,22 @@ async def test_check_passes_on_both_versions(
     if not successful_control_check:
         record_property(
             f"Control CHECK standard output [Last {MAX_LINES_IN_REPORT} lines]",
-            tail_file(check_control_execution_result.stdout_file_path, n=MAX_LINES_IN_REPORT),
+            tail_file(
+                check_control_execution_result.stdout_file_path, n=MAX_LINES_IN_REPORT
+            ),
         )
-        error_messages.append("The control check did not succeed, we cannot compare the results.")
+        error_messages.append(
+            "The control check did not succeed, we cannot compare the results."
+        )
     if not successful_target_check:
         record_property(
             f"Target CHECK standard output  [Last {MAX_LINES_IN_REPORT} lines]",
-            tail_file(check_target_execution_result.stdout_file_path, n=MAX_LINES_IN_REPORT),
+            tail_file(
+                check_target_execution_result.stdout_file_path, n=MAX_LINES_IN_REPORT
+            ),
         )
-        error_messages.append("The target check did not succeed. Check the test artifacts for more information.")
+        error_messages.append(
+            "The target check did not succeed. Check the test artifacts for more information."
+        )
     if error_messages:
         pytest.fail("\n".join(error_messages))

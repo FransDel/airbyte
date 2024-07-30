@@ -50,7 +50,9 @@ def get_all_connectors_in_directory(directory: Path) -> Set[Connector]:
             and (connector_directory / METADATA_FILE_NAME).exists()
             and "scaffold" not in str(connector_directory)
         ):
-            connectors.append(Connector(remove_strict_encrypt_suffix(connector_directory.name)))
+            connectors.append(
+                Connector(remove_strict_encrypt_suffix(connector_directory.name))
+            )
     return set(connectors)
 
 
@@ -84,6 +86,9 @@ def never_fail_exec(command: List[str]) -> Callable[[Container], Container]:
     """
 
     def never_fail_exec_inner(container: Container) -> Container:
-        return container.with_exec(["sh", "-c", f"{' '.join(command)}; echo $? > /exit_code"], skip_entrypoint=True)
+        return container.with_exec(
+            ["sh", "-c", f"{' '.join(command)}; echo $? > /exit_code"],
+            skip_entrypoint=True,
+        )
 
     return never_fail_exec_inner

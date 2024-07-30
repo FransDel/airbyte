@@ -4,7 +4,9 @@
 
 
 import asyncclick as click
-from pipelines.airbyte_ci.connectors.pull_request.pipeline import run_connector_pull_request_pipeline
+from pipelines.airbyte_ci.connectors.pull_request.pipeline import (
+    run_connector_pull_request_pipeline,
+)
 from pipelines.cli.dagger_pipeline_command import DaggerPipelineCommand
 from pipelines.helpers.connectors.command import run_connector_pipeline
 
@@ -63,7 +65,14 @@ from pipelines.helpers.connectors.command import run_connector_pipeline
 )
 @click.pass_context
 async def pull_request(
-    ctx: click.Context, message: str, branch_id: str, report: bool, title: str, body: str, changelog: bool, bump: str | None
+    ctx: click.Context,
+    message: str,
+    branch_id: str,
+    report: bool,
+    title: str,
+    body: str,
+    changelog: bool,
+    bump: str | None,
 ) -> bool:
     if not ctx.obj["ci_github_access_token"]:
         raise click.ClickException(

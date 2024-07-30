@@ -32,7 +32,6 @@ class MixpanelHttpRequester(HttpRequester):
         stream_slice: Optional[StreamSlice] = None,
         next_page_token: Optional[Mapping[str, Any]] = None,
     ) -> Mapping[str, Any]:
-
         return {"Accept": "application/json"}
 
     def get_request_params(
@@ -62,7 +61,6 @@ class MixpanelHttpRequester(HttpRequester):
         return super()._request_params(stream_state, stream_slice, next_page_token, extra_params)
 
     def send_request(self, **kwargs) -> Optional[requests.Response]:
-
         if self.reqs_per_hour_limit:
             if self.is_first_request:
                 self.is_first_request = False

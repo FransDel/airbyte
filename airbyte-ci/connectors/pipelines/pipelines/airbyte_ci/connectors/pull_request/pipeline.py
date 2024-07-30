@@ -37,7 +37,9 @@ async def get_connector_changes(context: ConnectorContext) -> Set[Path]:
     directory = context.connector.code_directory
     logger.info(f"Filtering to changes in {directory}")
     # get a list of files that are a child of this path
-    connector_files = set([file for file in all_modified_files if directory in file.parents])
+    connector_files = set(
+        [file for file in all_modified_files if directory in file.parents]
+    )
     # get doc too
     doc_path = context.connector.documentation_file_path
 
@@ -47,7 +49,9 @@ async def get_connector_changes(context: ConnectorContext) -> Set[Path]:
     return connector_files
 
 
-def replace_placeholder_with_pr_number(context: ConnectorContext, pr_number: int) -> Set[Path]:
+def replace_placeholder_with_pr_number(
+    context: ConnectorContext, pr_number: int
+) -> Set[Path]:
     current_doc = context.connector.documentation_file_path.read_text()
     updated_doc = current_doc.replace("*PR_NUMBER_PLACEHOLDER*", str(pr_number))
     context.connector.documentation_file_path.write_text(updated_doc)
@@ -69,19 +73,29 @@ async def run_connector_pull_request_pipeline(
             step_results = []
             modified_files = await get_connector_changes(context)
 
-            create_or_update_pull_request = CreateOrUpdatePullRequest(context, skip_ci=True)
+            create_or_update_pull_request = CreateOrUpdatePullRequest(
+                context, skip_ci=True
+            )
 
             if not modified_files:
-                step_results.append(create_or_update_pull_request.skip("No changes detected in the connector directory."))
-                context.report = ConnectorReport(context, step_results, name="PULL REQUEST")
+                step_results.append(
+                    create_or_update_pull_request.skip(
+                        "No changes detected in the connector directory."
+                    )
+                )
+                context.report = ConnectorReport(
+                    context, step_results, name="PULL REQUEST"
+                )
                 return context.report
 
-            create_or_update_pull_request_result = await create_or_update_pull_request.run(
-                modified_files,
-                branch_id,
-                message,
-                title,
-                body,
+            create_or_update_pull_request_result = (
+                await create_or_update_pull_request.run(
+                    modified_files,
+                    branch_id,
+                    message,
+                    title,
+                    body,
+                )
             )
             step_results.append(create_or_update_pull_request_result)
 
@@ -93,7 +107,9 @@ async def run_connector_pull_request_pipeline(
                 )
 
             created_pr = create_or_update_pull_request_result.output
-            modified_files.update(replace_placeholder_with_pr_number(context, created_pr.number))
+            modified_files.update(
+                replace_placeholder_with_pr_number(context, created_pr.number)
+            )
             update_pull_request = CreateOrUpdatePullRequest(context, skip_ci=False)
             update_pull_request_result = await update_pull_request.run(
                 modified_files,

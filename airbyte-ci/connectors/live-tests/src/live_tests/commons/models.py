@@ -207,7 +207,9 @@ class ExecutionInputs:
 
     def raise_if_missing_attr_for_command(self, attribute: str) -> None:
         if getattr(self, attribute) is None:
-            raise ValueError(f"We need a {attribute} to run the {self.command.value} command")
+            raise ValueError(
+                f"We need a {attribute} to run the {self.command.value} command"
+            )
 
     def __post_init__(self) -> None:
         if self.command is Command.CHECK:
@@ -251,7 +253,9 @@ class ExecutionResult:
 
     @property
     def logger(self) -> logging.Logger:
-        return logging.getLogger(f"{self.connector_under_test.target_or_control.value}-{self.command.value}")
+        return logging.getLogger(
+            f"{self.connector_under_test.target_or_control.value}-{self.command.value}"
+        )
 
     @property
     def airbyte_messages(self) -> Iterable[AirbyteMessage]:
@@ -323,7 +327,10 @@ class ExecutionResult:
                 stream_builders[stream] = stream_schema_builder
             stream_builders[stream].add_object(record.record.data)
         self.logger.info("Stream schemas generated")
-        return {stream: sort_dict_keys(stream_builders[stream].to_schema()) for stream in stream_builders}
+        return {
+            stream: sort_dict_keys(stream_builders[stream].to_schema())
+            for stream in stream_builders
+        }
 
     def get_records_per_stream(self, stream: str) -> Iterator[AirbyteMessage]:
         assert self.backend is not None, "Backend must be set to get records per stream"
@@ -338,20 +345,31 @@ class ExecutionResult:
                 if message.type is AirbyteMessageType.RECORD:
                     yield message
 
-    def get_states_per_stream(self, stream: str) -> Dict[str, List[AirbyteStateMessage]]:
+    def get_states_per_stream(
+        self, stream: str
+    ) -> Dict[str, List[AirbyteStateMessage]]:
         self.logger.info(f"Reading state messages for stream {stream}")
         states = defaultdict(list)
         for message in self.airbyte_messages:
             if message.type is AirbyteMessageType.STATE:
-                states[message.state.stream.stream_descriptor.name].append(message.state)
+                states[message.state.stream.stream_descriptor.name].append(
+                    message.state
+                )
         return states
 
-    def get_status_messages_per_stream(self, stream: str) -> Dict[str, List[AirbyteStreamStatusTraceMessage]]:
+    def get_status_messages_per_stream(
+        self, stream: str
+    ) -> Dict[str, List[AirbyteStreamStatusTraceMessage]]:
         self.logger.info(f"Reading state messages for stream {stream}")
         statuses = defaultdict(list)
         for message in self.airbyte_messages:
-            if message.type is AirbyteMessageType.TRACE and message.trace.type == TraceType.STREAM_STATUS:
-                statuses[message.trace.stream_status.stream_descriptor.name].append(message.trace.stream_status)
+            if (
+                message.type is AirbyteMessageType.TRACE
+                and message.trace.type == TraceType.STREAM_STATUS
+            ):
+                statuses[message.trace.stream_status.stream_descriptor.name].append(
+                    message.trace.stream_status
+                )
         return statuses
 
     @cache
@@ -363,7 +381,9 @@ class ExecutionResult:
 
     async def save_http_dump(self, output_dir: Path) -> None:
         if self.http_dump:
-            self.logger.info("An http dump was captured during the execution of the command, saving it.")
+            self.logger.info(
+                "An http dump was captured during the execution of the command, saving it."
+            )
             http_dump_file_path = (output_dir / self.HTTP_DUMP_FILE_NAME).resolve()
             await self.http_dump.export(str(http_dump_file_path))
             self.logger.info(f"Http dump saved to {http_dump_file_path}")
@@ -376,12 +396,16 @@ class ExecutionResult:
         else:
             self.logger.warning("No http dump to save")
 
-    def save_airbyte_messages(self, output_dir: Path, duckdb_path: Optional[Path] = None) -> None:
+    def save_airbyte_messages(
+        self, output_dir: Path, duckdb_path: Optional[Path] = None
+    ) -> None:
         self.logger.info("Saving Airbyte messages to disk")
         airbyte_messages_dir = output_dir / "airbyte_messages"
         airbyte_messages_dir.mkdir(parents=True, exist_ok=True)
         if duckdb_path:
-            self.backend = DuckDbBackend(airbyte_messages_dir, duckdb_path, self.duckdb_schema)
+            self.backend = DuckDbBackend(
+                airbyte_messages_dir, duckdb_path, self.duckdb_schema
+            )
         else:
             self.backend = FileBackend(airbyte_messages_dir)
         self.backend.write(self.airbyte_messages)
@@ -392,10 +416,14 @@ class ExecutionResult:
         stream_schemas_dir = output_dir / "stream_schemas"
         stream_schemas_dir.mkdir(parents=True, exist_ok=True)
         for stream_name, stream_schema in self.stream_schemas.items():
-            (stream_schemas_dir / f"{sanitize_stream_name(stream_name)}.json").write_text(json.dumps(stream_schema, sort_keys=True))
+            (
+                stream_schemas_dir / f"{sanitize_stream_name(stream_name)}.json"
+            ).write_text(json.dumps(stream_schema, sort_keys=True))
         self.logger.info("Stream schemas saved to disk")
 
-    async def save_artifacts(self, output_dir: Path, duckdb_path: Optional[Path] = None) -> None:
+    async def save_artifacts(
+        self, output_dir: Path, duckdb_path: Optional[Path] = None
+    ) -> None:
         self.logger.info("Saving artifacts to disk")
         self.save_airbyte_messages(output_dir, duckdb_path)
         self.update_configuration()
@@ -403,7 +431,9 @@ class ExecutionResult:
         self.save_stream_schemas(output_dir)
         self.logger.info("All artifacts saved to disk")
 
-    def get_updated_configuration(self, control_message_path: Path) -> Optional[dict[str, Any]]:
+    def get_updated_configuration(
+        self, control_message_path: Path
+    ) -> Optional[dict[str, Any]]:
         """Iterate through the control messages to find CONNECTOR_CONFIG message and return the last updated configuration."""
         if not control_message_path.exists():
             return None
@@ -419,12 +449,18 @@ class ExecutionResult:
         """This function checks if a configuration has to be updated by reading the control messages file.
         If a configuration has to be updated, it updates the configuration on the actor using the Airbyte API.
         """
-        assert self.backend is not None, "Backend must be set to update configuration in order to find the control messages path"
-        updated_configuration = self.get_updated_configuration(self.backend.jsonl_controls_path)
+        assert (
+            self.backend is not None
+        ), "Backend must be set to update configuration in order to find the control messages path"
+        updated_configuration = self.get_updated_configuration(
+            self.backend.jsonl_controls_path
+        )
         if updated_configuration is None:
             return
 
-        self.logger.warning(f"Updating configuration for {self.connector_under_test.name}, actor {self.actor_id}")
+        self.logger.warning(
+            f"Updating configuration for {self.connector_under_test.name}, actor {self.actor_id}"
+        )
         url = f"https://api.airbyte.com/v1/{self.connector_under_test.actor_type.value}s/{self.actor_id}"
 
         payload = {
@@ -443,9 +479,13 @@ class ExecutionResult:
         try:
             response.raise_for_status()
         except requests.HTTPError as e:
-            self.logger.error(f"Failed to update {self.connector_under_test.name} configuration on actor {self.actor_id}: {e}")
+            self.logger.error(
+                f"Failed to update {self.connector_under_test.name} configuration on actor {self.actor_id}: {e}"
+            )
             self.logger.error(f"Response: {response.text}")
-        self.logger.info(f"Updated configuration for {self.connector_under_test.name}, actor {self.actor_id}")
+        self.logger.info(
+            f"Updated configuration for {self.connector_under_test.name}, actor {self.actor_id}"
+        )
 
     def __hash__(self):
         return hash(self.connector_under_test.version)

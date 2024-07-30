@@ -37,14 +37,18 @@ class CatalogField:
         """Do actual parsing of the serialized value"""
         if self.formats.intersection({"datetime", "date-time", "date"}):
             if value is None and "null" not in self.formats:
-                raise ValueError(f"Invalid field format. Value: {value}. Format: {self.formats}")
+                raise ValueError(
+                    f"Invalid field format. Value: {value}. Format: {self.formats}"
+                )
             # handle beautiful MySQL datetime, i.e. NULL datetime
             if value.startswith("0000-00-00"):
                 value = value.replace("0000-00-00", "0001-01-01")
             return pendulum.parse(value)
         return value
 
-    def parse(self, record: Mapping[str, Any], path: Optional[List[Union[int, str]]] = None) -> Any:
+    def parse(
+        self, record: Mapping[str, Any], path: Optional[List[Union[int, str]]] = None
+    ) -> Any:
         """Extract field value from the record and cast it to native type"""
         path = path or self.path
         value = reduce(lambda data, key: data[key], path, record)
@@ -194,7 +198,9 @@ def get_object_structure(obj: dict) -> List[str]:
         if path:
             paths.append(path)
         if isinstance(obj, dict):
-            return {k: _traverse_obj_and_get_path(v, path + "/" + k) for k, v in obj.items()}
+            return {
+                k: _traverse_obj_and_get_path(v, path + "/" + k) for k, v in obj.items()
+            }
         elif isinstance(obj, list) and len(obj) > 0:
             return [_traverse_obj_and_get_path(obj[0], path + "/[]")]
 
@@ -203,7 +209,9 @@ def get_object_structure(obj: dict) -> List[str]:
     return paths
 
 
-def get_expected_schema_structure(schema: dict, annotate_one_of: bool = False) -> List[str]:
+def get_expected_schema_structure(
+    schema: dict, annotate_one_of: bool = False
+) -> List[str]:
     """
     Traverse through json schema and compose list of property keys that object expected to have.
     :param annotate_one_of: Generate one_of index in path
@@ -235,9 +243,14 @@ def get_expected_schema_structure(schema: dict, annotate_one_of: bool = False) -
             if annotate_one_of:
                 return [
                     _scan_schema({"type": "object", **s}, path + f"({num})")
-                    for num, s in enumerate(subschema.get("oneOf") or subschema.get("anyOf"))
+                    for num, s in enumerate(
+                        subschema.get("oneOf") or subschema.get("anyOf")
+                    )
                 ]
-            return [_scan_schema({"type": "object", **s}, path) for s in subschema.get("oneOf") or subschema.get("anyOf")]
+            return [
+                _scan_schema({"type": "object", **s}, path)
+                for s in subschema.get("oneOf") or subschema.get("anyOf")
+            ]
         schema_type = subschema.get("type", ["object", "null"])
         if not isinstance(schema_type, list):
             schema_type = [schema_type]
@@ -279,7 +292,9 @@ def get_paths_in_connector_config(schema: dict) -> List[str]:
     :param properties: jsonschema containing values which may have path_in_connector_config attributes
     :returns list of path_in_connector_config paths
     """
-    return ["/" + "/".join(value["path_in_connector_config"]) for value in schema.values()]
+    return [
+        "/" + "/".join(value["path_in_connector_config"]) for value in schema.values()
+    ]
 
 
 def conforms_to_schema(record: Mapping[str, Any], schema: Mapping[str, Any]) -> bool:
@@ -330,7 +345,9 @@ def _is_equal_or_narrower_type(value: Any, expected_type: str) -> bool:
     if inferred_type is None:
         return False
 
-    return ComparableType(inferred_type) <= ComparableType(_get_comparable_type(expected_type))
+    return ComparableType(inferred_type) <= ComparableType(
+        _get_comparable_type(expected_type)
+    )
 
 
 def _get_inferred_type(value: Any) -> Optional[ComparableType]:

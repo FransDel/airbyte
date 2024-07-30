@@ -75,8 +75,4 @@ class ServiceEntriesTest(TestCase):
             _service_entries_response().build(),
         )
 
-        _read(
-            ConfigBuilder()
-            .with_account_token(_AN_ACCOUNT_TOKEN)
-            .with_api_key(_AN_API_KEY)
-        )
+        _read(ConfigBuilder().with_account_token(_AN_ACCOUNT_TOKEN).with_api_key(_AN_API_KEY))

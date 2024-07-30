@@ -165,9 +165,7 @@ def test_streams_read(stream, endpoint, cursor_value, requests_mock, common_para
     contact_lists_v1_response = [
         {
             "json": {
-                "contacts": [
-                    {"vid": "test_id", "merge-audits": [{"canonical-vid": 2, "vid-to-merge": 5608, "timestamp": 1653322839932}]}
-                ]
+                "contacts": [{"vid": "test_id", "merge-audits": [{"canonical-vid": 2, "vid-to-merge": 5608, "timestamp": 1653322839932}]}]
             },
             "status_code": 200,
         }
@@ -445,7 +443,7 @@ def test_contacts_merged_audit_stream_doesnt_call_hubspot_to_get_json_schema(req
 
 def test_get_custom_objects_metadata_success(requests_mock, custom_object_schema, expected_custom_object_json_schema, api):
     requests_mock.register_uri("GET", "/crm/v3/schemas", json={"results": [custom_object_schema]})
-    for (entity, fully_qualified_name, schema, custom_properties) in api.get_custom_objects_metadata():
+    for entity, fully_qualified_name, schema, custom_properties in api.get_custom_objects_metadata():
         assert entity == "animals"
         assert fully_qualified_name == "p19936848_Animal"
         assert schema == expected_custom_object_json_schema

@@ -67,7 +67,8 @@ def test_parse_response_with_sensitive_data(requests_mock, test_config):
         json={"items": [{"id": "CatalogsFeeds1", "credentials": {"password": "bla"}}]},
     )
     actual_response = [
-        dict(record) for stream_slice in stream.stream_slices(sync_mode=SyncMode.full_refresh)
+        dict(record)
+        for stream_slice in stream.stream_slices(sync_mode=SyncMode.full_refresh)
         for record in stream.read_records(sync_mode=SyncMode.full_refresh, stream_slice=stream_slice)
     ]
     assert actual_response == [{"id": "CatalogsFeeds1"}]
@@ -152,9 +153,7 @@ def test_non_json_response(requests_mock, patch_base_class):
         ),
     ),
 )
-def test_backoff_on_rate_limit_error(
-    requests_mock, test_config, patch_base_class, test_response, status_code, test_headers, expected
-):
+def test_backoff_on_rate_limit_error(requests_mock, test_config, patch_base_class, test_response, status_code, test_headers, expected):
     stream = PinterestStream(config=MagicMock())
     url = "https://api.pinterest.com/v5/boards"
     requests_mock.get(

@@ -45,12 +45,22 @@ def test_next_page_token(requests_mock, config_pass, subscriptions_url, mock_res
     [
         ({}, []),
         (dict(data=[]), []),
-        (dict(data=[{"id": "test-customer-id", "customer": {"id": "1", "external_customer_id": "2"}, "plan": {"id": "3"}}]),
-         [{"id": "test-customer-id", "customer_id": "1", "external_customer_id": "2", "plan_id": "3"}]),
-        (dict(data=[{"id": "test-customer-id", "customer": {"id": "7", "external_customer_id": "8"}, "plan": {"id": "9"}},
-                    {"id": "test-customer-id-2", "customer": {"id": "10", "external_customer_id": "11"}, "plan": {"id": "12"}}]),
-         [{"id": "test-customer-id", "customer_id": "7", "external_customer_id": "8", "plan_id": "9"},
-          {"id": "test-customer-id-2", "customer_id": "10", "external_customer_id": "11", "plan_id": "9"}]),
+        (
+            dict(data=[{"id": "test-customer-id", "customer": {"id": "1", "external_customer_id": "2"}, "plan": {"id": "3"}}]),
+            [{"id": "test-customer-id", "customer_id": "1", "external_customer_id": "2", "plan_id": "3"}],
+        ),
+        (
+            dict(
+                data=[
+                    {"id": "test-customer-id", "customer": {"id": "7", "external_customer_id": "8"}, "plan": {"id": "9"}},
+                    {"id": "test-customer-id-2", "customer": {"id": "10", "external_customer_id": "11"}, "plan": {"id": "12"}},
+                ]
+            ),
+            [
+                {"id": "test-customer-id", "customer_id": "7", "external_customer_id": "8", "plan_id": "9"},
+                {"id": "test-customer-id-2", "customer_id": "10", "external_customer_id": "11", "plan_id": "9"},
+            ],
+        ),
     ],
 )
 def test_parse_response(requests_mock, config_pass, subscriptions_url, mock_response, expected_parsed_records):

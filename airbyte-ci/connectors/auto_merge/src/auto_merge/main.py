@@ -38,7 +38,9 @@ def github_client() -> Iterator[Github]:
             client.close()
 
 
-def check_if_pr_is_auto_mergeable(head_commit: GithubCommit, pr: PullRequest, required_checks: set[str]) -> bool:
+def check_if_pr_is_auto_mergeable(
+    head_commit: GithubCommit, pr: PullRequest, required_checks: set[str]
+) -> bool:
     """Run all enabled validators and return if they all pass.
 
     Args:
@@ -58,7 +60,9 @@ def check_if_pr_is_auto_mergeable(head_commit: GithubCommit, pr: PullRequest, re
     return True
 
 
-def merge_with_retries(pr: PullRequest, max_retries: int = 3, wait_time: int = 60) -> Optional[PullRequest]:
+def merge_with_retries(
+    pr: PullRequest, max_retries: int = 3, wait_time: int = 60
+) -> Optional[PullRequest]:
     """Merge a PR with retries
 
     Args:
@@ -77,11 +81,18 @@ def merge_with_retries(pr: PullRequest, max_retries: int = 3, wait_time: int = 6
                 logger.info(f"Retrying to merge PR #{pr.number}")
                 time.sleep(wait_time)
             else:
-                logger.error(f"Failed to merge PR #{pr.number} after {max_retries} retries")
+                logger.error(
+                    f"Failed to merge PR #{pr.number} after {max_retries} retries"
+                )
     return None
 
 
-def process_pr(repo: GithubRepo, pr: PullRequest, required_passing_contexts: set[str], dry_run: bool) -> None | PullRequest:
+def process_pr(
+    repo: GithubRepo,
+    pr: PullRequest,
+    required_passing_contexts: set[str],
+    dry_run: bool,
+) -> None | PullRequest:
     """Process a PR to see if it is auto-mergeable and merge it if it is.
 
     Args:
@@ -112,9 +123,13 @@ def back_off_if_rate_limited(github_client: Github) -> None:
     """
     remaining_requests, _ = github_client.rate_limiting
     if remaining_requests < 100:
-        logging.warning(f"Rate limit almost reached. Remaining requests: {remaining_requests}")
+        logging.warning(
+            f"Rate limit almost reached. Remaining requests: {remaining_requests}"
+        )
     if remaining_requests == 0:
-        logging.warning(f"Rate limited. Sleeping for {github_client.rate_limiting_resettime - time.time()} seconds")
+        logging.warning(
+            f"Rate limited. Sleeping for {github_client.rate_limiting_resettime - time.time()} seconds"
+        )
         time.sleep(github_client.rate_limiting_resettime - time.time())
     return None
 
@@ -125,23 +140,35 @@ def auto_merge() -> None:
     """
     dry_run = PRODUCTION is False
     if PRODUCTION:
-        logger.info("Running auto-merge in production mode. Mergeable PRs will be merged!")
+        logger.info(
+            "Running auto-merge in production mode. Mergeable PRs will be merged!"
+        )
     else:
-        logger.info("Running auto-merge in dry mode mode. Mergeable PRs won't be merged!")
+        logger.info(
+            "Running auto-merge in dry mode mode. Mergeable PRs won't be merged!"
+        )
 
     with github_client() as gh_client:
         repo = gh_client.get_repo(AIRBYTE_REPO)
         main_branch = repo.get_branch(BASE_BRANCH)
         logger.info(f"Fetching required passing contexts for {BASE_BRANCH}")
-        required_passing_contexts = set(main_branch.get_required_status_checks().contexts)
-        candidate_issues = gh_client.search_issues(f"repo:{AIRBYTE_REPO} is:pr label:{AUTO_MERGE_LABEL} base:{BASE_BRANCH} state:open")
+        required_passing_contexts = set(
+            main_branch.get_required_status_checks().contexts
+        )
+        candidate_issues = gh_client.search_issues(
+            f"repo:{AIRBYTE_REPO} is:pr label:{AUTO_MERGE_LABEL} base:{BASE_BRANCH} state:open"
+        )
         prs = [issue.as_pull_request() for issue in candidate_issues]
-        logger.info(f"Found {len(prs)} open PRs targeting {BASE_BRANCH} with the {AUTO_MERGE_LABEL} label")
+        logger.info(
+            f"Found {len(prs)} open PRs targeting {BASE_BRANCH} with the {AUTO_MERGE_LABEL} label"
+        )
         merged_prs = []
         for pr in prs:
             back_off_if_rate_limited(gh_client)
             if merged_pr := process_pr(repo, pr, required_passing_contexts, dry_run):
                 merged_prs.append(merged_pr)
         if "GITHUB_STEP_SUMMARY" in os.environ:
-            job_summary_path = Path(os.environ["GITHUB_STEP_SUMMARY"]).write_text(generate_job_summary_as_markdown(merged_prs))
+            job_summary_path = Path(os.environ["GITHUB_STEP_SUMMARY"]).write_text(
+                generate_job_summary_as_markdown(merged_prs)
+            )
             logger.info(f"Job summary written to {job_summary_path}")

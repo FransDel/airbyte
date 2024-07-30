@@ -13,13 +13,11 @@ def test_given_no_arguments_default_backoff_strategy_returns_default_values():
 
 
 class CustomBackoffStrategy(BackoffStrategy):
-
     def backoff_time(self, response_or_exception: Optional[Union[requests.Response, requests.RequestException]]) -> Optional[float]:
         return response_or_exception.headers["Retry-After"]
 
 
 def test_given_valid_arguments_default_backoff_strategy_returns_values():
-
     response = requests.Response()
     response.headers["Retry-After"] = 123
     backoff_strategy = CustomBackoffStrategy()

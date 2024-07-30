@@ -14,7 +14,11 @@ from pipelines.airbyte_ci.connectors.test.pipeline import run_connector_test_pip
 from pipelines.airbyte_ci.connectors.test.steps.common import LiveTests
 from pipelines.cli.click_decorators import click_ci_requirements_option
 from pipelines.cli.dagger_pipeline_command import DaggerPipelineCommand
-from pipelines.consts import LOCAL_BUILD_PLATFORM, MAIN_CONNECTOR_TESTING_SECRET_STORE_ALIAS, ContextState
+from pipelines.consts import (
+    LOCAL_BUILD_PLATFORM,
+    MAIN_CONNECTOR_TESTING_SECRET_STORE_ALIAS,
+    ContextState,
+)
 from pipelines.hacks import do_regression_test_status_check
 from pipelines.helpers.execution import argument_parsing
 from pipelines.helpers.execution.run_steps import RunStepOptions
@@ -25,7 +29,9 @@ from pipelines.models.steps import STEP_PARAMS
 
 GITHUB_GLOBAL_CONTEXT_FOR_TESTS = "Connectors CI tests"
 GITHUB_GLOBAL_DESCRIPTION_FOR_TESTS = "Running connectors tests"
-REGRESSION_TEST_MANUAL_APPROVAL_CONTEXT = "Regression Test Results Reviewed and Approved"
+REGRESSION_TEST_MANUAL_APPROVAL_CONTEXT = (
+    "Regression Test Results Reviewed and Approved"
+)
 TESTS_SKIPPED_BY_DEFAULT = [
     CONNECTOR_TEST_STEP_ID.CONNECTOR_LIVE_TESTS,
 ]
@@ -42,7 +48,10 @@ TESTS_SKIPPED_BY_DEFAULT = [
 @click.option(
     "--code-tests-only",
     is_flag=True,
-    help=("Only execute code tests. " "Metadata checks, QA, and acceptance tests will be skipped."),
+    help=(
+        "Only execute code tests. "
+        "Metadata checks, QA, and acceptance tests will be skipped."
+    ),
     default=False,
     type=bool,
 )
@@ -89,7 +98,10 @@ TESTS_SKIPPED_BY_DEFAULT = [
     default=GITHUB_GLOBAL_DESCRIPTION_FOR_TESTS,
 )
 @click.argument(
-    "extra_params", nargs=-1, type=click.UNPROCESSED, callback=argument_parsing.build_extra_params_mapping(CONNECTOR_TEST_STEP_ID)
+    "extra_params",
+    nargs=-1,
+    type=click.UNPROCESSED,
+    callback=argument_parsing.build_extra_params_mapping(CONNECTOR_TEST_STEP_ID),
 )
 @click.pass_context
 async def test(
@@ -112,19 +124,27 @@ async def test(
     ctx.obj["global_status_check_description"] = global_status_check_description
 
     if ctx.obj["ci_gcp_credentials"]:
-        ctx.obj["secret_stores"][MAIN_CONNECTOR_TESTING_SECRET_STORE_ALIAS] = GSMSecretStore(ctx.obj["ci_gcp_credentials"])
+        ctx.obj["secret_stores"][MAIN_CONNECTOR_TESTING_SECRET_STORE_ALIAS] = (
+            GSMSecretStore(ctx.obj["ci_gcp_credentials"])
+        )
     else:
-        main_logger.warn(f"The credentials to connect to {MAIN_CONNECTOR_TESTING_SECRET_STORE_ALIAS} were are not defined.")
+        main_logger.warn(
+            f"The credentials to connect to {MAIN_CONNECTOR_TESTING_SECRET_STORE_ALIAS} were are not defined."
+        )
 
     if only_steps and skip_steps:
-        raise click.UsageError("Cannot use both --only-step and --skip-step at the same time.")
+        raise click.UsageError(
+            "Cannot use both --only-step and --skip-step at the same time."
+        )
     if not only_steps:
         skip_steps = list(skip_steps)
         skip_steps += TESTS_SKIPPED_BY_DEFAULT
     if ctx.obj["is_ci"]:
         fail_if_missing_docker_hub_creds(ctx)
 
-    do_regression_test_status_check(ctx, REGRESSION_TEST_MANUAL_APPROVAL_CONTEXT, main_logger)
+    do_regression_test_status_check(
+        ctx, REGRESSION_TEST_MANUAL_APPROVAL_CONTEXT, main_logger
+    )
     if ctx.obj["selected_connectors_with_modified_files"]:
         update_global_commit_status_check_for_tests(ctx.obj, "pending")
     else:
@@ -182,20 +202,29 @@ async def test(
             ctx.obj["execute_timeout"],
         )
     except Exception as e:
-        main_logger.error("An error occurred while running the test pipeline", exc_info=e)
+        main_logger.error(
+            "An error occurred while running the test pipeline", exc_info=e
+        )
         update_global_commit_status_check_for_tests(ctx.obj, "failure")
         return False
 
     finally:
         if LiveTests.local_tests_artifacts_dir.exists():
             shutil.rmtree(LiveTests.local_tests_artifacts_dir)
-            main_logger.info(f"  Test artifacts cleaned up from {LiveTests.local_tests_artifacts_dir}")
+            main_logger.info(
+                f"  Test artifacts cleaned up from {LiveTests.local_tests_artifacts_dir}"
+            )
 
     @ctx.call_on_close
     def send_commit_status_check() -> None:
         if ctx.obj["is_ci"]:
-            global_success = all(connector_context.state is ContextState.SUCCESSFUL for connector_context in connectors_tests_contexts)
-            update_global_commit_status_check_for_tests(ctx.obj, "success" if global_success else "failure")
+            global_success = all(
+                connector_context.state is ContextState.SUCCESSFUL
+                for connector_context in connectors_tests_contexts
+            )
+            update_global_commit_status_check_for_tests(
+                ctx.obj, "success" if global_success else "failure"
+            )
 
     # If we reach this point, it means that all the connectors have been tested so the pipeline did its job and can exit with success.
     return True

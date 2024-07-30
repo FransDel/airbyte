@@ -5,7 +5,11 @@
 from dataclasses import dataclass
 from typing import Callable, List
 
-from pipelines.airbyte_ci.format.consts import CACHE_MOUNT_PATH, LICENSE_FILE_NAME, Formatter
+from pipelines.airbyte_ci.format.consts import (
+    CACHE_MOUNT_PATH,
+    LICENSE_FILE_NAME,
+    Formatter,
+)
 from pipelines.airbyte_ci.format.containers import (
     format_java_container,
     format_js_container,
@@ -37,7 +41,9 @@ FORMATTERS_CONFIGURATIONS: List[FormatConfiguration] = [
         Formatter.JS,
         ["**/*.json", "**/*.yaml", "**/*.yml"],
         format_js_container,
-        [f"prettier --write . --list-different --cache --cache-location={CACHE_MOUNT_PATH}/.prettier_cache"],
+        [
+            f"prettier --write . --list-different --cache --cache-location={CACHE_MOUNT_PATH}/.prettier_cache"
+        ],
     ),
     # Add license header to java and python files. The license header is stored in LICENSE_SHORT file.
     FormatConfiguration(

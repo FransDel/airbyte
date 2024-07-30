@@ -75,8 +75,4 @@ class SubmittedInspectionFormsTest(TestCase):
             _submitted_inspection_forms_response().build(),
         )
 
-        _read(
-            ConfigBuilder()
-            .with_account_token(_AN_ACCOUNT_TOKEN)
-            .with_api_key(_AN_API_KEY)
-        )
+        _read(ConfigBuilder().with_account_token(_AN_ACCOUNT_TOKEN).with_api_key(_AN_API_KEY))

@@ -8,7 +8,7 @@ from pytest import fixture
 
 @fixture
 def config_pass():
-    return { "client_id": "good", "client_secret": "good" }
+    return {"client_id": "good", "client_secret": "good"}
 
 
 @fixture
@@ -23,4 +23,4 @@ def auth_url():
 
 @fixture
 def auth_token():
-    return { "access_token": "good", "expires_in": 3600 }
+    return {"access_token": "good", "expires_in": 3600}

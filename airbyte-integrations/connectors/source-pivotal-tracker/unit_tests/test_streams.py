@@ -8,9 +8,7 @@ from airbyte_cdk.models import SyncMode
 from airbyte_cdk.sources.streams import Stream
 from source_pivotal_tracker.source import SourcePivotalTracker
 
-CONFIG = {
-  "api_token": "good"
-}
+CONFIG = {"api_token": "good"}
 stream_slice = {"project_id": 99}
 
 
@@ -76,4 +74,3 @@ def test_epics(requests_mock, projects_response, epics_response):
 
 def test_stories(requests_mock, projects_response, stories_response):
     set_test_stream(requests_mock, projects_response, "stories", stories_response, "stories")
-

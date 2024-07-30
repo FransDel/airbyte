@@ -15,7 +15,6 @@ from pipelines.helpers import git
 from pipelines.models.steps import Step, StepResult, StepStatus
 
 if TYPE_CHECKING:
-
     from anyio import Semaphore
 
 
@@ -35,7 +34,9 @@ class DeleteConnectorFile(Step):
         return f"Delete {self.file_to_delete}"
 
     async def _run(self) -> StepResult:
-        file_to_delete_path = self.context.connector.code_directory / self.file_to_delete
+        file_to_delete_path = (
+            self.context.connector.code_directory / self.file_to_delete
+        )
         if not file_to_delete_path.exists():
             return StepResult(
                 step=self,
@@ -70,7 +71,11 @@ class AddBuildInstructionsToReadme(Step):
                 stdout="Connector does not have a documentation file.",
                 output=self.repo_dir,
             )
-        current_readme = await (await self.context.get_connector_dir(include=["README.md"])).file("README.md").contents()
+        current_readme = (
+            await (await self.context.get_connector_dir(include=["README.md"]))
+            .file("README.md")
+            .contents()
+        )
         try:
             updated_readme = self.add_build_instructions(current_readme)
         except Exception as e:
@@ -80,7 +85,9 @@ class AddBuildInstructionsToReadme(Step):
                 stdout=str(e),
                 output=self.repo_dir,
             )
-        updated_repo_dir = await self.repo_dir.with_new_file(str(readme_path), contents=updated_readme)
+        updated_repo_dir = await self.repo_dir.with_new_file(
+            str(readme_path), contents=updated_readme
+        )
         return StepResult(
             step=self,
             status=StepStatus.SUCCESS,
@@ -89,7 +96,6 @@ class AddBuildInstructionsToReadme(Step):
         )
 
     def add_build_instructions(self, og_doc_content: str) -> str:
-
         build_instructions_template = Template(
             textwrap.dedent(
                 """
@@ -181,11 +187,17 @@ class AddBuildInstructionsToReadme(Step):
         if build_instructions_index is None or run_instructions_index is None:
             raise Exception("Could not find build or run instructions in README.md")
 
-        new_doc = "\n".join(og_lines[:build_instructions_index] + build_instructions.splitlines() + og_lines[run_instructions_index:])
+        new_doc = "\n".join(
+            og_lines[:build_instructions_index]
+            + build_instructions.splitlines()
+            + og_lines[run_instructions_index:]
+        )
         return new_doc
 
 
-async def run_connector_base_image_upgrade_pipeline(context: ConnectorContext, semaphore: "Semaphore", set_if_not_exists: bool) -> Report:
+async def run_connector_base_image_upgrade_pipeline(
+    context: ConnectorContext, semaphore: "Semaphore", set_if_not_exists: bool
+) -> Report:
     """Run a pipeline to upgrade for a single connector to use our base image."""
     async with semaphore:
         steps_results = []
@@ -195,16 +207,22 @@ async def run_connector_base_image_upgrade_pipeline(context: ConnectorContext, s
                 context,
                 set_if_not_exists=set_if_not_exists,
             )
-            update_base_image_in_metadata_result = await update_base_image_in_metadata.run()
+            update_base_image_in_metadata_result = (
+                await update_base_image_in_metadata.run()
+            )
             steps_results.append(update_base_image_in_metadata_result)
             final_repo_dir = update_base_image_in_metadata_result.output
             await og_repo_dir.diff(final_repo_dir).export(str(git.get_git_repo_path()))
-            report = ConnectorReport(context, steps_results, name="BASE IMAGE UPGRADE RESULTS")
+            report = ConnectorReport(
+                context, steps_results, name="BASE IMAGE UPGRADE RESULTS"
+            )
             context.report = report
     return report
 
 
-async def run_connector_migration_to_base_image_pipeline(context: ConnectorContext, semaphore: "Semaphore") -> Report:
+async def run_connector_migration_to_base_image_pipeline(
+    context: ConnectorContext, semaphore: "Semaphore"
+) -> Report:
     async with semaphore:
         steps_results = []
         async with context:
@@ -234,16 +252,22 @@ async def run_connector_migration_to_base_image_pipeline(context: ConnectorConte
                 context,
                 set_if_not_exists=True,
             )
-            update_base_image_in_metadata_result = await update_base_image_in_metadata.run()
+            update_base_image_in_metadata_result = (
+                await update_base_image_in_metadata.run()
+            )
             steps_results.append(update_base_image_in_metadata_result)
             if update_base_image_in_metadata_result.status is not StepStatus.SUCCESS:
-                context.report = ConnectorReport(context, steps_results, name="BASE IMAGE UPGRADE RESULTS")
+                context.report = ConnectorReport(
+                    context, steps_results, name="BASE IMAGE UPGRADE RESULTS"
+                )
                 return context.report
 
             for modified_file in update_base_image_in_metadata.modified_files:
                 latest_repo_dir_state = latest_repo_dir_state.with_file(
                     str(context.connector.code_directory / modified_file),
-                    update_base_image_in_metadata_result.output.file(str(modified_file)),
+                    update_base_image_in_metadata_result.output.file(
+                        str(modified_file)
+                    ),
                 )
 
             # UPDATE DOC
@@ -251,12 +275,18 @@ async def run_connector_migration_to_base_image_pipeline(context: ConnectorConte
                 context,
                 latest_repo_dir_state,
             )
-            add_build_instructions_to_doc_results = await add_build_instructions_to_doc.run()
+            add_build_instructions_to_doc_results = (
+                await add_build_instructions_to_doc.run()
+            )
             steps_results.append(add_build_instructions_to_doc_results)
             latest_repo_dir_state = add_build_instructions_to_doc_results.output
 
             # EXPORT MODIFIED FILES BACK TO HOST
-            await og_repo_dir.diff(latest_repo_dir_state).export(str(git.get_git_repo_path()))
-            report = ConnectorReport(context, steps_results, name="MIGRATE TO BASE IMAGE RESULTS")
+            await og_repo_dir.diff(latest_repo_dir_state).export(
+                str(git.get_git_repo_path())
+            )
+            report = ConnectorReport(
+                context, steps_results, name="MIGRATE TO BASE IMAGE RESULTS"
+            )
             context.report = report
     return report

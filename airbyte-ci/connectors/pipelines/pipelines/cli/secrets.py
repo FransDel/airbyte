@@ -7,13 +7,17 @@ from pipelines.helpers.gcs import sanitize_gcp_credentials
 from pipelines.models.secrets import InMemorySecretStore, Secret
 
 
-def wrap_in_secret(ctx: click.Context, param: click.Option, value: Any) -> Optional[Secret]:  # noqa
+def wrap_in_secret(
+    ctx: click.Context, param: click.Option, value: Any
+) -> Optional[Secret]:  # noqa
     # Validate callback usage
     if value is None:
         return None
     assert param.name is not None
     if not isinstance(value, str):
-        raise click.BadParameter(f"{param.name} value is not a string, only strings can be wrapped in a secret.")
+        raise click.BadParameter(
+            f"{param.name} value is not a string, only strings can be wrapped in a secret."
+        )
 
     # Make sure the context object is set or set it with an empty dict
     ctx.ensure_object(dict)
@@ -29,12 +33,16 @@ def wrap_in_secret(ctx: click.Context, param: click.Option, value: Any) -> Optio
     return Secret(param.name, ctx.obj["secret_stores"]["in_memory"])
 
 
-def wrap_gcp_credentials_in_secret(ctx: click.Context, param: click.Option, value: Any) -> Optional[Secret]:  # noqa
+def wrap_gcp_credentials_in_secret(
+    ctx: click.Context, param: click.Option, value: Any
+) -> Optional[Secret]:  # noqa
     # Validate callback usage
     if value is None:
         return None
     if not isinstance(value, str):
-        raise click.BadParameter(f"{param.name} value is not a string, only strings can be wrapped in a secret.")
+        raise click.BadParameter(
+            f"{param.name} value is not a string, only strings can be wrapped in a secret."
+        )
 
     value = sanitize_gcp_credentials(value)
     return wrap_in_secret(ctx, param, value)

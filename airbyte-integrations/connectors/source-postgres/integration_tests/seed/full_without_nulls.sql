@@ -14,10 +14,12 @@ CREATE
         supplier_id INTEGER,
         price NUMERIC
     );
-SET
-lc_monetary TO 'en_US.utf8';
-SET
-TIMEZONE TO 'MST';
+set
+lc_monetary to 'en_US.utf8'
+;
+set
+timezone to 'MST'
+;
 
 CREATE
     EXTENSION hstore;

@@ -6,7 +6,6 @@ import os
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-
     import dagger
     from connector_ops.utils import Connector  # type: ignore
 
@@ -32,7 +31,10 @@ def get_syft_container(dagger_client: dagger.Client) -> dagger.Container:
         # Syft requires access to the docker daemon. We share the host's docker socket with the Syft container.
         .with_mounted_file("/config/config.json", config_file)
         .with_env_variable("DOCKER_CONFIG", "/config")
-        .with_unix_socket("/var/run/docker.sock", dagger_client.host().unix_socket("/var/run/docker.sock"))
+        .with_unix_socket(
+            "/var/run/docker.sock",
+            dagger_client.host().unix_socket("/var/run/docker.sock"),
+        )
     )
 
 
@@ -47,7 +49,9 @@ async def get_text_sbom(dagger_client: dagger.Client, connector: Connector) -> s
         str: The SBOM in text format.
     """
     syft_container = get_syft_container(dagger_client)
-    return await syft_container.with_exec([connector.image_address, "-o", "syft-text"]).stdout()
+    return await syft_container.with_exec(
+        [connector.image_address, "-o", "syft-text"]
+    ).stdout()
 
 
 async def get_json_sbom(dagger_client: dagger.Client, connector: Connector) -> str:
@@ -61,4 +65,10 @@ async def get_json_sbom(dagger_client: dagger.Client, connector: Connector) -> s
         str: The SBOM in JSON format.
     """
     syft_container = get_syft_container(dagger_client)
-    return await syft_container.with_exec([connector.image_address, "-o", "syft-json=/sbom.json"]).file("/sbom.json").contents()
+    return (
+        await syft_container.with_exec(
+            [connector.image_address, "-o", "syft-json=/sbom.json"]
+        )
+        .file("/sbom.json")
+        .contents()
+    )

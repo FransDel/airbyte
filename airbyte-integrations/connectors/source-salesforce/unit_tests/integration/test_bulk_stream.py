@@ -23,7 +23,9 @@ _CLIENT_ID = "a_client_id"
 _CLIENT_SECRET = "a_client_secret"
 _CURSOR_FIELD = "SystemModstamp"
 _INCREMENTAL_FIELDS = [_A_FIELD_NAME, _CURSOR_FIELD]
-_INCREMENTAL_SCHEMA_BUILDER = SalesforceDescribeResponseBuilder().field(_A_FIELD_NAME).field(_CURSOR_FIELD, "datetime")  # re-using same fields as _INCREMENTAL_FIELDS
+_INCREMENTAL_SCHEMA_BUILDER = (
+    SalesforceDescribeResponseBuilder().field(_A_FIELD_NAME).field(_CURSOR_FIELD, "datetime")
+)  # re-using same fields as _INCREMENTAL_FIELDS
 _INSTANCE_URL = "https://instance.salesforce.com"
 _JOB_ID = "a-job-id"
 _LOOKBACK_WINDOW = timedelta(seconds=LOOKBACK_SECONDS)
@@ -57,7 +59,6 @@ def _calculate_start_time(start_time: datetime) -> datetime:
 
 @freezegun.freeze_time(_NOW.isoformat())
 class BulkStreamTest(TestCase):
-
     def setUp(self) -> None:
         self._config = ConfigBuilder().client_id(_CLIENT_ID).client_secret(_CLIENT_SECRET).refresh_token(_REFRESH_TOKEN)
 
@@ -163,7 +164,17 @@ class BulkStreamTest(TestCase):
         given_stream(self._http_mocker, _BASE_URL, _STREAM_NAME, SalesforceDescribeResponseBuilder().field(_A_FIELD_NAME))
         self._http_mocker.post(
             self._make_full_job_request([_A_FIELD_NAME]),
-            HttpResponse(json.dumps([{"errorCode": "API_ERROR", "message": "Implementation restriction... <can't complete the error message as I can't reproduce this issue>"}]), 400),
+            HttpResponse(
+                json.dumps(
+                    [
+                        {
+                            "errorCode": "API_ERROR",
+                            "message": "Implementation restriction... <can't complete the error message as I can't reproduce this issue>",
+                        }
+                    ]
+                ),
+                400,
+            ),
         )
 
         output = read(_STREAM_NAME, SyncMode.full_refresh, self._config)
@@ -313,7 +324,9 @@ class BulkStreamTest(TestCase):
         assert len(output.records) == 3
         assert len(output.most_recent_state.stream_state.dict()["slices"]) == 2
 
-    def _create_sliced_job(self, lower_boundary: datetime, upper_boundary: datetime, fields: List[str], job_id: str, record_count: int) -> None:
+    def _create_sliced_job(
+        self, lower_boundary: datetime, upper_boundary: datetime, fields: List[str], job_id: str, record_count: int
+    ) -> None:
         self._http_mocker.post(
             self._make_sliced_job_request(lower_boundary, upper_boundary, fields),
             JobCreateResponseBuilder().with_id(job_id).build(),
@@ -335,7 +348,9 @@ class BulkStreamTest(TestCase):
         )
 
     def _make_sliced_job_request(self, lower_boundary: datetime, upper_boundary: datetime, fields: List[str]) -> HttpRequest:
-        return self._build_job_creation_request(f"SELECT {', '.join(fields)} FROM a_stream_name WHERE SystemModstamp >= {lower_boundary.isoformat(timespec='milliseconds')} AND SystemModstamp < {upper_boundary.isoformat(timespec='milliseconds')}")
+        return self._build_job_creation_request(
+            f"SELECT {', '.join(fields)} FROM a_stream_name WHERE SystemModstamp >= {lower_boundary.isoformat(timespec='milliseconds')} AND SystemModstamp < {upper_boundary.isoformat(timespec='milliseconds')}"
+        )
 
     def _make_full_job_request(self, fields: List[str]) -> HttpRequest:
         return self._build_job_creation_request(f"SELECT {', '.join(fields)} FROM a_stream_name")
@@ -345,15 +360,14 @@ class BulkStreamTest(TestCase):
         This method does not handle field types for now which may cause some test failures on change if we start considering using some
         fields for calculation. One example of that would be cursor field parsing to datetime.
         """
-        record = ','.join([f"{field}_value" for field in fields])
-        records = '\n'.join([record for _ in range(count)])
+        record = ",".join([f"{field}_value" for field in fields])
+        records = "\n".join([record for _ in range(count)])
         return f"{','.join(fields)}\n{records}"
 
     def _build_job_creation_request(self, query: str) -> HttpRequest:
-        return HttpRequest(f"{_BASE_URL}/jobs/query", body=json.dumps({
-            "operation": "queryAll",
-            "query": query,
-            "contentType": "CSV",
-            "columnDelimiter": "COMMA",
-            "lineEnding": "LF"
-        }))
+        return HttpRequest(
+            f"{_BASE_URL}/jobs/query",
+            body=json.dumps(
+                {"operation": "queryAll", "query": query, "contentType": "CSV", "columnDelimiter": "COMMA", "lineEnding": "LF"}
+            ),
+        )

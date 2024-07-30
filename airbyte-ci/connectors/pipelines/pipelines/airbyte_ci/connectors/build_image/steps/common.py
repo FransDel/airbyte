@@ -17,10 +17,12 @@ if TYPE_CHECKING:
     from typing import Any
 
 
-def apply_airbyte_docker_labels(connector_container: Container, connector: Connector) -> Container:
-    return connector_container.with_label("io.airbyte.version", connector.metadata["dockerImageTag"]).with_label(
-        "io.airbyte.name", connector.metadata["dockerRepository"]
-    )
+def apply_airbyte_docker_labels(
+    connector_container: Container, connector: Connector
+) -> Container:
+    return connector_container.with_label(
+        "io.airbyte.version", connector.metadata["dockerImageTag"]
+    ).with_label("io.airbyte.name", connector.metadata["dockerRepository"])
 
 
 class BuildConnectorImagesBase(Step, ABC):
@@ -43,7 +45,9 @@ class BuildConnectorImagesBase(Step, ABC):
         for platform in self.build_platforms:
             try:
                 connector_container = await self._build_connector(platform, *args)
-                connector_container = apply_airbyte_docker_labels(connector_container, self.context.connector)
+                connector_container = apply_airbyte_docker_labels(
+                    connector_container, self.context.connector
+                )
                 try:
                     await connector_container.with_exec(["spec"])
                 except ExecError as e:
@@ -57,27 +61,43 @@ class BuildConnectorImagesBase(Step, ABC):
                 build_results_per_platform[platform] = connector_container
             except QueryError as e:
                 return StepResult(
-                    step=self, status=StepStatus.FAILURE, stderr=f"Failed to build connector image for platform {platform}: {e}"
+                    step=self,
+                    status=StepStatus.FAILURE,
+                    stderr=f"Failed to build connector image for platform {platform}: {e}",
                 )
         success_message = (
             f"The {self.context.connector.technical_name} docker image "
             f"was successfully built for platform(s) {', '.join(self.build_platforms)}"
         )
-        return StepResult(step=self, status=StepStatus.SUCCESS, stdout=success_message, output=build_results_per_platform)
+        return StepResult(
+            step=self,
+            status=StepStatus.SUCCESS,
+            stdout=success_message,
+            output=build_results_per_platform,
+        )
 
-    async def _build_connector(self, platform: Platform, *args: Any, **kwargs: Any) -> Container:
+    async def _build_connector(
+        self, platform: Platform, *args: Any, **kwargs: Any
+    ) -> Container:
         """Implement the generation of the image for the platform and return the corresponding container.
 
         Returns:
             Container: The container to package as a docker image for this platform.
         """
-        raise NotImplementedError("`BuildConnectorImagesBase`s must define a '_build_connector' attribute.")
+        raise NotImplementedError(
+            "`BuildConnectorImagesBase`s must define a '_build_connector' attribute."
+        )
 
 
 class LoadContainerToLocalDockerHost(Step):
     context: ConnectorContext
 
-    def __init__(self, context: ConnectorContext, containers: dict[Platform, Container], image_tag: str = "dev") -> None:
+    def __init__(
+        self,
+        context: ConnectorContext,
+        containers: dict[Platform, Container],
+        image_tag: str = "dev",
+    ) -> None:
         super().__init__(context)
         self.image_tag = image_tag
         self.containers = containers
@@ -87,7 +107,11 @@ class LoadContainerToLocalDockerHost(Step):
         When building for multiple platforms, we need to tag the image with the platform name.
         There's no way to locally build a multi-arch image, so we need to tag the image with the platform name when the user passed multiple architecture options.
         """
-        return f"{self.image_tag}-{platform.replace('/', '-')}" if multi_platforms else self.image_tag
+        return (
+            f"{self.image_tag}-{platform.replace('/', '-')}"
+            if multi_platforms
+            else self.image_tag
+        )
 
     @property
     def title(self) -> str:
@@ -102,7 +126,9 @@ class LoadContainerToLocalDockerHost(Step):
         image_sha = None
         multi_platforms = len(self.containers) > 1
         for platform, container in self.containers.items():
-            _, exported_tar_path = await export_container_to_tarball(self.context, container, platform)
+            _, exported_tar_path = await export_container_to_tarball(
+                self.context, container, platform
+            )
             if not exported_tar_path:
                 return StepResult(
                     step=self,
@@ -120,9 +146,13 @@ class LoadContainerToLocalDockerHost(Step):
                     loaded_images.append(full_image_name)
             except docker.errors.DockerException as e:
                 return StepResult(
-                    step=self, status=StepStatus.FAILURE, stderr=f"Something went wrong while interacting with the local docker client: {e}"
+                    step=self,
+                    status=StepStatus.FAILURE,
+                    stderr=f"Something went wrong while interacting with the local docker client: {e}",
                 )
 
         return StepResult(
-            step=self, status=StepStatus.SUCCESS, stdout=f"Loaded image {','.join(loaded_images)} to your Docker host ({image_sha})."
+            step=self,
+            status=StepStatus.SUCCESS,
+            stdout=f"Loaded image {','.join(loaded_images)} to your Docker host ({image_sha}).",
         )

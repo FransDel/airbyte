@@ -27,12 +27,20 @@ async def checked_out_git_container(
     """
     origin_repo_url = AIRBYTE_GITHUB_REPO_URL
     current_git_branch = current_git_branch.removeprefix("origin/")
-    diffed_branch = current_git_branch if diffed_branch is None else diffed_branch.removeprefix("origin/")
+    diffed_branch = (
+        current_git_branch
+        if diffed_branch is None
+        else diffed_branch.removeprefix("origin/")
+    )
     if github_token := os.environ.get("CI_GITHUB_ACCESS_TOKEN"):
         origin_repo_url = get_authenticated_repo_url(origin_repo_url, github_token)
         target_repo_url = get_authenticated_repo_url(repo_url, github_token)
-    origin_repo_url_secret = dagger_client.set_secret("ORIGIN_REPO_URL", origin_repo_url)
-    target_repo_url_secret = dagger_client.set_secret("TARGET_REPO_URL", target_repo_url)
+    origin_repo_url_secret = dagger_client.set_secret(
+        "ORIGIN_REPO_URL", origin_repo_url
+    )
+    target_repo_url_secret = dagger_client.set_secret(
+        "TARGET_REPO_URL", target_repo_url
+    )
 
     git_container = (
         dagger_client.container()
@@ -42,8 +50,14 @@ async def checked_out_git_container(
         .with_env_variable("CACHEBUSTER", current_git_revision)
         .with_secret_variable("ORIGIN_REPO_URL", origin_repo_url_secret)
         .with_secret_variable("TARGET_REPO_URL", target_repo_url_secret)
-        .with_exec(sh_dash_c(["git remote add origin ${ORIGIN_REPO_URL}"]), skip_entrypoint=True)
-        .with_exec(sh_dash_c(["git remote add target ${TARGET_REPO_URL}"]), skip_entrypoint=True)
+        .with_exec(
+            sh_dash_c(["git remote add origin ${ORIGIN_REPO_URL}"]),
+            skip_entrypoint=True,
+        )
+        .with_exec(
+            sh_dash_c(["git remote add target ${TARGET_REPO_URL}"]),
+            skip_entrypoint=True,
+        )
         .with_exec(["fetch", "origin", diffed_branch])
     )
     if diffed_branch != current_git_branch:

@@ -12,12 +12,18 @@ from connector_ops.utils import ConnectorLanguage  # type: ignore
 from pipelines.airbyte_ci.connectors.consts import CONNECTOR_TEST_STEP_ID
 from pipelines.airbyte_ci.connectors.reports import ConnectorReport
 from pipelines.airbyte_ci.connectors.test.context import ConnectorTestContext
-from pipelines.airbyte_ci.connectors.test.steps import java_connectors, manifest_only_connectors, python_connectors
-from pipelines.airbyte_ci.connectors.test.steps.common import QaChecks, VersionIncrementCheck
+from pipelines.airbyte_ci.connectors.test.steps import (
+    java_connectors,
+    manifest_only_connectors,
+    python_connectors,
+)
+from pipelines.airbyte_ci.connectors.test.steps.common import (
+    QaChecks,
+    VersionIncrementCheck,
+)
 from pipelines.helpers.execution.run_steps import StepToRun, run_steps
 
 if TYPE_CHECKING:
-
     from pipelines.helpers.execution.run_steps import STEP_TREE
 
 LANGUAGE_MAPPING = {
@@ -39,14 +45,20 @@ def get_test_steps(context: ConnectorTestContext) -> STEP_TREE:
     Returns:
         STEP_TREE: The list of tests steps.
     """
-    if _get_test_steps := LANGUAGE_MAPPING["get_test_steps"].get(context.connector.language):
+    if _get_test_steps := LANGUAGE_MAPPING["get_test_steps"].get(
+        context.connector.language
+    ):
         return _get_test_steps(context)
     else:
-        context.logger.warning(f"No tests defined for connector language {context.connector.language}!")
+        context.logger.warning(
+            f"No tests defined for connector language {context.connector.language}!"
+        )
         return []
 
 
-async def run_connector_test_pipeline(context: ConnectorTestContext, semaphore: anyio.Semaphore) -> ConnectorReport:
+async def run_connector_test_pipeline(
+    context: ConnectorTestContext, semaphore: anyio.Semaphore
+) -> ConnectorReport:
     """
     Compute the steps to run for a connector test pipeline.
     """
@@ -57,7 +69,10 @@ async def run_connector_test_pipeline(context: ConnectorTestContext, semaphore: 
     if not context.code_tests_only:
         static_analysis_steps_to_run = [
             [
-                StepToRun(id=CONNECTOR_TEST_STEP_ID.VERSION_INC_CHECK, step=VersionIncrementCheck(context)),
+                StepToRun(
+                    id=CONNECTOR_TEST_STEP_ID.VERSION_INC_CHECK,
+                    step=VersionIncrementCheck(context),
+                ),
                 StepToRun(id=CONNECTOR_TEST_STEP_ID.QA_CHECKS, step=QaChecks(context)),
             ]
         ]
@@ -71,7 +86,9 @@ async def run_connector_test_pipeline(context: ConnectorTestContext, semaphore: 
             )
 
             results = list(result_dict.values())
-            report = ConnectorReport(context, steps_results=results, name="TEST RESULTS")
+            report = ConnectorReport(
+                context, steps_results=results, name="TEST RESULTS"
+            )
             context.report = report
 
         return report

@@ -102,10 +102,34 @@ def test_backoff_time(time_mock, http_status, response_headers, expected_backoff
 @pytest.mark.parametrize(
     ("http_status", "response_headers", "text", "response_action", "error_message"),
     [
-        (HTTPStatus.OK, {"X-RateLimit-Resource": "graphql"}, '{"errors": [{"type": "RATE_LIMITED"}]}', ResponseAction.RATE_LIMITED, f"Response status code: {HTTPStatus.OK}. Retrying..."),
-        (HTTPStatus.FORBIDDEN, {"X-RateLimit-Remaining": "0"}, "", ResponseAction.RATE_LIMITED, f"Response status code: {HTTPStatus.FORBIDDEN}. Retrying..."),
-        (HTTPStatus.FORBIDDEN, {"Retry-After": "0"}, "", ResponseAction.RATE_LIMITED, f"Response status code: {HTTPStatus.FORBIDDEN}. Retrying..."),
-        (HTTPStatus.FORBIDDEN, {"Retry-After": "60"}, "", ResponseAction.RATE_LIMITED, f"Response status code: {HTTPStatus.FORBIDDEN}. Retrying..."),
+        (
+            HTTPStatus.OK,
+            {"X-RateLimit-Resource": "graphql"},
+            '{"errors": [{"type": "RATE_LIMITED"}]}',
+            ResponseAction.RATE_LIMITED,
+            f"Response status code: {HTTPStatus.OK}. Retrying...",
+        ),
+        (
+            HTTPStatus.FORBIDDEN,
+            {"X-RateLimit-Remaining": "0"},
+            "",
+            ResponseAction.RATE_LIMITED,
+            f"Response status code: {HTTPStatus.FORBIDDEN}. Retrying...",
+        ),
+        (
+            HTTPStatus.FORBIDDEN,
+            {"Retry-After": "0"},
+            "",
+            ResponseAction.RATE_LIMITED,
+            f"Response status code: {HTTPStatus.FORBIDDEN}. Retrying...",
+        ),
+        (
+            HTTPStatus.FORBIDDEN,
+            {"Retry-After": "60"},
+            "",
+            ResponseAction.RATE_LIMITED,
+            f"Response status code: {HTTPStatus.FORBIDDEN}. Retrying...",
+        ),
         (HTTPStatus.INTERNAL_SERVER_ERROR, {}, "", ResponseAction.RETRY, "Internal server error."),
         (HTTPStatus.BAD_GATEWAY, {}, "", ResponseAction.RETRY, "Bad gateway."),
         (HTTPStatus.SERVICE_UNAVAILABLE, {}, "", ResponseAction.RETRY, "Service unavailable."),
@@ -330,7 +354,6 @@ def test_stream_repositories_read():
 @responses.activate
 @patch("time.sleep")
 def test_stream_projects_disabled(time_mock):
-
     repository_args_with_start_date = {"start_date": "start_date", "page_size_for_large_streams": 30, "repositories": ["test_repo"]}
 
     stream = Projects(**repository_args_with_start_date)
@@ -348,7 +371,6 @@ def test_stream_projects_disabled(time_mock):
 
 @responses.activate
 def test_stream_pull_requests_incremental_read():
-
     page_size = 2
     repository_args_with_start_date = {
         "repositories": ["organization/repository"],
@@ -412,7 +434,6 @@ def test_stream_pull_requests_incremental_read():
 
 @responses.activate
 def test_stream_commits_incremental_read():
-
     repository_args_with_start_date = {
         "repositories": ["organization/repository"],
         "page_size_for_large_streams": 100,
@@ -451,18 +472,18 @@ def test_stream_commits_incremental_read():
                 "name": "branch",
                 "commit": {
                     "sha": "74445338726f0f8e1c27c10dce90ca00c5ae2858",
-                    "url": "https://api.github.com/repos/airbytehq/airbyte/commits/74445338726f0f8e1c27c10dce90ca00c5ae2858"
+                    "url": "https://api.github.com/repos/airbytehq/airbyte/commits/74445338726f0f8e1c27c10dce90ca00c5ae2858",
                 },
-                "protected": False
+                "protected": False,
             },
             {
                 "name": "main",
                 "commit": {
                     "sha": "c27c10dce90ca00c5ae285874445338726f0f8e1",
-                    "url": "https://api.github.com/repos/airbytehq/airbyte/commits/c27c10dce90ca00c5ae285874445338726f0f8e1"
+                    "url": "https://api.github.com/repos/airbytehq/airbyte/commits/c27c10dce90ca00c5ae285874445338726f0f8e1",
                 },
-                "protected": False
-            }
+                "protected": False,
+            },
         ],
         status=200,
     )
@@ -503,7 +524,6 @@ def test_stream_commits_incremental_read():
 
 @responses.activate
 def test_stream_pull_request_commits():
-
     repository_args = {
         "repositories": ["organization/repository"],
         "page_size_for_large_streams": 100,
@@ -545,7 +565,6 @@ def test_stream_pull_request_commits():
 
 @responses.activate
 def test_stream_project_columns():
-
     repository_args_with_start_date = {
         "repositories": ["organization/repository"],
         "page_size_for_large_streams": 100,
@@ -638,7 +657,6 @@ def test_stream_project_columns():
 
 @responses.activate
 def test_stream_project_cards():
-
     repository_args_with_start_date = {
         "repositories": ["organization/repository"],
         "page_size_for_large_streams": 100,
@@ -734,7 +752,6 @@ def test_stream_project_cards():
 
 @responses.activate
 def test_stream_comments():
-
     repository_args_with_start_date = {
         "repositories": ["organization/repository", "airbytehq/airbyte"],
         "page_size_for_large_streams": 2,
@@ -866,7 +883,6 @@ def test_stream_comments():
 
 @responses.activate
 def test_streams_read_full_refresh():
-
     repository_args = {
         "repositories": ["organization/repository"],
         "page_size_for_large_streams": 100,
@@ -927,7 +943,6 @@ def test_streams_read_full_refresh():
 
 @responses.activate
 def test_stream_reviews_incremental_read():
-
     repository_args_with_start_date = {
         "start_date": "2000-01-01T00:00:00Z",
         "page_size_for_large_streams": 30,
@@ -1002,7 +1017,6 @@ def test_stream_team_members_full_refresh(time_mock, caplog, rate_limit_mock_res
 
 @responses.activate
 def test_stream_commit_comment_reactions_incremental_read():
-
     repository_args = {"repositories": ["airbytehq/integration-test"], "page_size_for_large_streams": 100}
     stream = CommitCommentReactions(**repository_args)
     stream._parent_stream._http_client._session.cache.clear()
@@ -1083,7 +1097,6 @@ def test_stream_commit_comment_reactions_incremental_read():
 
 @responses.activate
 def test_stream_workflow_runs_read_incremental(monkeypatch):
-
     repository_args_with_start_date = {
         "repositories": ["org/repos"],
         "page_size_for_large_streams": 30,
@@ -1202,7 +1215,6 @@ def test_stream_workflow_runs_read_incremental(monkeypatch):
 
 @responses.activate
 def test_stream_workflow_jobs_read():
-
     repository_args = {
         "repositories": ["org/repo"],
         "page_size_for_large_streams": 100,
@@ -1303,7 +1315,6 @@ def test_stream_workflow_jobs_read():
 
 @responses.activate
 def test_stream_pull_request_comment_reactions_read():
-
     repository_args_with_start_date = {
         "start_date": "2022-01-01T00:00:00Z",
         "page_size_for_large_streams": 2,
@@ -1361,11 +1372,7 @@ def test_stream_projects_v2_graphql_retry(time_mock, rate_limit_mock_response):
     }
     stream = ProjectsV2(**repository_args_with_start_date)
     resp = responses.add(
-        responses.POST,
-        "https://api.github.com/graphql",
-        json={"errors": "not found"},
-        status=200,
-        headers={'Retry-After': '5'}
+        responses.POST, "https://api.github.com/graphql", json={"errors": "not found"}, status=200, headers={"Retry-After": "5"}
     )
 
     backoff_strategy = GithubStreamABCBackoffStrategy(stream)

@@ -26,11 +26,8 @@ INSERT
         'vash'
     );
 
-SELECT
-    pg_create_logical_replication_slot(
-        'debezium_slot',
-        'pgoutput'
-    );
+select pg_create_logical_replication_slot('debezium_slot', 'pgoutput')
+;
 
 CREATE
     PUBLICATION publication FOR ALL TABLES;

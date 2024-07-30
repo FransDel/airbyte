@@ -14,7 +14,6 @@ from base_images.root_images import PYTHON_3_10_14
 
 
 class AirbytePythonConnectorBaseImage(bases.AirbyteConnectorBaseImage):
-
     root_image: Final[published_image.PublishedImage] = PYTHON_3_10_14
     repository: Final[str] = "airbyte/python-connector-base"
     pip_cache_name: Final[str] = "pip_cache"

@@ -8,9 +8,17 @@ import dpath.util
 import jsonschema
 import pytest
 from airbyte_protocol.models import ConnectorSpecification
-from live_tests.commons.json_schema_helper import JsonSchemaHelper, get_expected_schema_structure, get_paths_in_connector_config
+from live_tests.commons.json_schema_helper import (
+    JsonSchemaHelper,
+    get_expected_schema_structure,
+    get_paths_in_connector_config,
+)
 from live_tests.commons.models import ExecutionResult, SecretDict
-from live_tests.utils import fail_test_on_failing_execution_results, find_all_values_for_key_in_schema, get_test_logger
+from live_tests.utils import (
+    fail_test_on_failing_execution_results,
+    find_all_values_for_key_in_schema,
+    get_test_logger,
+)
 
 pytestmark = [
     pytest.mark.anyio,
@@ -52,7 +60,9 @@ async def test_spec(
     spec_target_execution_result: ExecutionResult,
 ):
     """Check that the spec call succeeds"""
-    fail_test_on_failing_execution_results(record_property, [spec_target_execution_result])
+    fail_test_on_failing_execution_results(
+        record_property, [spec_target_execution_result]
+    )
 
 
 @pytest.mark.allow_diagnostic_mode
@@ -62,7 +72,11 @@ async def test_config_match_spec(
 ):
     """Check that config matches the actual schema from the spec call"""
     # Getting rid of technical variables that start with an underscore
-    config = {key: value for key, value in connector_config.data.items() if not key.startswith("_")}
+    config = {
+        key: value
+        for key, value in connector_config.data.items()
+        if not key.startswith("_")
+    }
     try:
         jsonschema.validate(instance=config, schema=target_spec.connectionSpecification)
     except jsonschema.exceptions.ValidationError as err:
@@ -81,8 +95,8 @@ async def test_enum_usage(target_spec: ConnectorSpecification):
 
     for path in enum_paths:
         enum_list = schema_helper.get_node(path)
-        assert len(set(enum_list)) == len(
-            enum_list
+        assert (
+            len(set(enum_list)) == len(enum_list)
         ), f"Enum lists should not contain duplicate values. Misconfigured enum array: {enum_list}. {docs_msg}"
 
 
@@ -104,7 +118,9 @@ async def test_oneof_usage(target_spec: ConnectorSpecification):
 
         variants = schema_helper.get_node(variant_path)
         for variant in variants:
-            assert "properties" in variant, f"Each item in the oneOf array should be a property with type object. {docs_msg}"
+            assert (
+                "properties" in variant
+            ), f"Each item in the oneOf array should be a property with type object. {docs_msg}"
 
         oneof_path = ".".join(map(str, variant_path))
         variant_props = [set(v["properties"].keys()) for v in variants]
@@ -113,7 +129,9 @@ async def test_oneof_usage(target_spec: ConnectorSpecification):
 
         const_common_props = set()
         for common_prop in common_props:
-            if all(["const" in variant["properties"][common_prop] for variant in variants]):
+            if all(
+                ["const" in variant["properties"][common_prop] for variant in variants]
+            ):
                 const_common_props.add(common_prop)
         assert (
             len(const_common_props) == 1
@@ -125,12 +143,18 @@ async def test_oneof_usage(target_spec: ConnectorSpecification):
             assert (
                 "default" not in prop_obj or prop_obj["default"] == prop_obj["const"]
             ), f"'default' needs to be identical to const in common property {oneof_path}[{n}].{const_common_prop}. It's recommended to just use `const`. {docs_msg}"
-            assert "enum" not in prop_obj or (
-                len(prop_obj["enum"]) == 1 and prop_obj["enum"][0] == prop_obj["const"]
+            assert (
+                "enum" not in prop_obj
+                or (
+                    len(prop_obj["enum"]) == 1
+                    and prop_obj["enum"][0] == prop_obj["const"]
+                )
             ), f"'enum' needs to be an array with a single item identical to const in common property {oneof_path}[{n}].{const_common_prop}. It's recommended to just use `const`. {docs_msg}"
 
 
-def _is_spec_property_name_secret(path: str, secret_property_names) -> Tuple[Optional[str], bool]:
+def _is_spec_property_name_secret(
+    path: str, secret_property_names
+) -> Tuple[Optional[str], bool]:
     """
     Given a path to a type field, extract a field name and decide whether it is a name of secret or not
     based on a provided list of secret names.
@@ -139,7 +163,16 @@ def _is_spec_property_name_secret(path: str, secret_property_names) -> Tuple[Opt
     Example:
     properties/credentials/oneOf/1/properties/api_key/type -> [api_key, properties, 1, oneOf, credentials, properties] -> api_key
     """
-    reserved_keywords = ("anyOf", "oneOf", "allOf", "not", "properties", "items", "type", "prefixItems")
+    reserved_keywords = (
+        "anyOf",
+        "oneOf",
+        "allOf",
+        "not",
+        "properties",
+        "items",
+        "type",
+        "prefixItems",
+    )
     for part in reversed(path.split("/")[:-1]):
         if part.isdigit() or part in reserved_keywords:
             continue
@@ -170,7 +203,9 @@ def _property_can_store_secret(prop: dict) -> bool:
     return not is_property_constant_value
 
 
-async def test_secret_is_properly_marked(target_spec: ConnectorSpecification, secret_property_names):
+async def test_secret_is_properly_marked(
+    target_spec: ConnectorSpecification, secret_property_names
+):
     """
     Each field has a type, therefore we can make a flat list of fields from the returned specification.
     Iterate over the list, check if a field name is a secret name, can potentially hold a secret value
@@ -179,8 +214,12 @@ async def test_secret_is_properly_marked(target_spec: ConnectorSpecification, se
     secrets_exposed = []
     non_secrets_hidden = []
     spec_properties = target_spec.connectionSpecification["properties"]
-    for type_path, type_value in dpath.util.search(spec_properties, "**/type", yielded=True):
-        _, is_property_name_secret = _is_spec_property_name_secret(type_path, secret_property_names)
+    for type_path, type_value in dpath.util.search(
+        spec_properties, "**/type", yielded=True
+    ):
+        _, is_property_name_secret = _is_spec_property_name_secret(
+            type_path, secret_property_names
+        )
         if not is_property_name_secret:
             continue
         absolute_path = f"/{type_path}"
@@ -218,7 +257,9 @@ def test_property_type_is_not_array(target_spec: ConnectorSpecification):
     Each field has one or multiple types, but the UI only supports a single type and optionally "null" as a second type.
     """
     errors = []
-    for type_path, type_value in dpath.util.search(target_spec.connectionSpecification, "**/properties/*/type", yielded=True):
+    for type_path, type_value in dpath.util.search(
+        target_spec.connectionSpecification, "**/properties/*/type", yielded=True
+    ):
         if isinstance(type_value, List):
             number_of_types = len(type_value)
             if number_of_types != 2 and number_of_types != 1:
@@ -239,13 +280,17 @@ def test_object_not_empty(target_spec: ConnectorSpecification):
     """
     schema_helper = JsonSchemaHelper(target_spec.connectionSpecification)
     errors = []
-    for type_path, type_value in dpath.util.search(target_spec.connectionSpecification, "**/type", yielded=True):
+    for type_path, type_value in dpath.util.search(
+        target_spec.connectionSpecification, "**/type", yielded=True
+    ):
         if type_path == "type":
             # allow empty root object
             continue
         if type_value == "object":
             property = schema_helper.get_parent(type_path)
-            if "oneOf" not in property and ("properties" not in property or len(property["properties"]) == 0):
+            if "oneOf" not in property and (
+                "properties" not in property or len(property["properties"]) == 0
+            ):
                 errors.append(
                     f"{type_path} is an empty object which will not be represented correctly in the UI. Either remove or add specific properties"
                 )
@@ -258,7 +303,9 @@ async def test_array_type(target_spec: ConnectorSpecification):
     """
     schema_helper = JsonSchemaHelper(target_spec.connectionSpecification)
     errors = []
-    for type_path, type_type in dpath.util.search(target_spec.connectionSpecification, "**/type", yielded=True):
+    for type_path, type_type in dpath.util.search(
+        target_spec.connectionSpecification, "**/type", yielded=True
+    ):
         property_definition = schema_helper.get_parent(type_path)
         if type_type != "array":
             # unrelated "items", not an array definition
@@ -268,8 +315,13 @@ async def test_array_type(target_spec: ConnectorSpecification):
             continue
         elif isinstance(items_value, List):
             errors.append(f"{type_path} is not just a single item type: {items_value}")
-        elif items_value.get("type") not in ["object", "string", "number", "integer"] and "enum" not in items_value:
-            errors.append(f"Items of {type_path} has to be either object or string or define an enum")
+        elif (
+            items_value.get("type") not in ["object", "string", "number", "integer"]
+            and "enum" not in items_value
+        ):
+            errors.append(
+                f"Items of {type_path} has to be either object or string or define an enum"
+            )
     _fail_on_errors(errors)
 
 
@@ -291,12 +343,18 @@ async def test_forbidden_complex_types(target_spec: ConnectorSpecification):
     ]
     found_keys = set()
     for forbidden_key in forbidden_keys:
-        for path, value in dpath.util.search(target_spec.connectionSpecification, f"**/{forbidden_key}", yielded=True):
+        for path, value in dpath.util.search(
+            target_spec.connectionSpecification, f"**/{forbidden_key}", yielded=True
+        ):
             found_keys.add(path)
 
     for forbidden_key in forbidden_keys:
         # remove forbidden keys if they are used as properties directly
-        for path, _value in dpath.util.search(target_spec.connectionSpecification, f"**/properties/{forbidden_key}", yielded=True):
+        for path, _value in dpath.util.search(
+            target_spec.connectionSpecification,
+            f"**/properties/{forbidden_key}",
+            yielded=True,
+        ):
             found_keys.remove(path)
 
     if len(found_keys) > 0:
@@ -310,7 +368,9 @@ async def test_date_pattern(request: "SubRequest", target_spec: ConnectorSpecifi
     that corresponds with the format the datepicker component is creating.
     """
     schema_helper = JsonSchemaHelper(target_spec.connectionSpecification)
-    for format_path, format in dpath.util.search(target_spec.connectionSpecification, "**/format", yielded=True):
+    for format_path, format in dpath.util.search(
+        target_spec.connectionSpecification, "**/format", yielded=True
+    ):
         if not isinstance(format, str):
             # format is not a format definition here but a property named format
             continue
@@ -332,7 +392,9 @@ async def test_date_format(request: "SubRequest", target_spec: ConnectorSpecific
     Properties with a pattern that looks like a date should have their format set to date or date-time.
     """
     schema_helper = JsonSchemaHelper(target_spec.connectionSpecification)
-    for pattern_path, pattern in dpath.util.search(target_spec.connectionSpecification, "**/pattern", yielded=True):
+    for pattern_path, pattern in dpath.util.search(
+        target_spec.connectionSpecification, "**/pattern", yielded=True
+    ):
         if not isinstance(pattern, str):
             # pattern is not a pattern definition here but a property named pattern
             continue
@@ -358,7 +420,9 @@ async def test_duplicate_order(target_spec: ConnectorSpecification):
     """
     schema_helper = JsonSchemaHelper(target_spec.connectionSpecification)
     errors = []
-    for properties_path, properties in dpath.util.search(target_spec.connectionSpecification, "**/properties", yielded=True):
+    for properties_path, properties in dpath.util.search(
+        target_spec.connectionSpecification, "**/properties", yielded=True
+    ):
         definition = schema_helper.get_parent(properties_path)
         if definition.get("type") != "object":
             # unrelated "properties", not an actual object definition
@@ -386,13 +450,17 @@ async def test_nested_group(target_spec: ConnectorSpecification):
     """
     errors = []
     schema_helper = JsonSchemaHelper(target_spec.connectionSpecification)
-    for result in dpath.util.search(target_spec.connectionSpecification, "/properties/**/group", yielded=True):
+    for result in dpath.util.search(
+        target_spec.connectionSpecification, "/properties/**/group", yielded=True
+    ):
         group_path = result[0]
         parent_path = schema_helper.get_parent_path(group_path)
         is_property_named_group = parent_path.endswith("properties")
         grandparent_path = schema_helper.get_parent_path(parent_path)
         if grandparent_path != "/properties" and not is_property_named_group:
-            errors.append(f"Groups can only be defined on top level, is defined at {group_path}")
+            errors.append(
+                f"Groups can only be defined on top level, is defined at {group_path}"
+            )
     _fail_on_errors(errors)
 
 
@@ -402,7 +470,9 @@ async def test_display_type(target_spec: ConnectorSpecification):
     """
     errors = []
     schema_helper = JsonSchemaHelper(target_spec.connectionSpecification)
-    for result in dpath.util.search(target_spec.connectionSpecification, "/properties/**/display_type", yielded=True):
+    for result in dpath.util.search(
+        target_spec.connectionSpecification, "/properties/**/display_type", yielded=True
+    ):
         display_type_path = result[0]
         parent_path = schema_helper.get_parent_path(display_type_path)
         is_property_named_display_type = parent_path.endswith("properties")
@@ -410,16 +480,26 @@ async def test_display_type(target_spec: ConnectorSpecification):
             continue
         parent_object = schema_helper.get_parent(display_type_path)
         if "oneOf" not in parent_object:
-            errors.append(f"display_type is only allowed on fields which have a oneOf property, but is set on {parent_path}")
+            errors.append(
+                f"display_type is only allowed on fields which have a oneOf property, but is set on {parent_path}"
+            )
         display_type_value = parent_object.get("display_type")
         if display_type_value != "dropdown" and display_type_value != "radio":
-            errors.append(f"display_type must be either 'dropdown' or 'radio', but is set to '{display_type_value}' at {display_type_path}")
+            errors.append(
+                f"display_type must be either 'dropdown' or 'radio', but is set to '{display_type_value}' at {display_type_path}"
+            )
     _fail_on_errors(errors)
 
 
-async def test_defined_refs_exist_in_json_spec_file(target_spec: ConnectorSpecification):
+async def test_defined_refs_exist_in_json_spec_file(
+    target_spec: ConnectorSpecification,
+):
     """Checking for the presence of unresolved `$ref`s values within each json spec file"""
-    check_result = list(find_all_values_for_key_in_schema(target_spec.connectionSpecification["properties"], "$ref"))
+    check_result = list(
+        find_all_values_for_key_in_schema(
+            target_spec.connectionSpecification["properties"], "$ref"
+        )
+    )
     assert not check_result, "Found unresolved `$refs` value in spec.json file"
 
 
@@ -438,15 +518,27 @@ async def test_oauth_flow_parameters(target_spec: ConnectorSpecification):
     if oauth_config_specification:
         if oauth_config_specification.oauth_user_input_from_connector_config_specification:
             paths_to_validate.update(
-                get_paths_in_connector_config(oauth_config_specification.oauth_user_input_from_connector_config_specification["properties"])
+                get_paths_in_connector_config(
+                    oauth_config_specification.oauth_user_input_from_connector_config_specification[
+                        "properties"
+                    ]
+                )
             )
         if oauth_config_specification.complete_oauth_output_specification:
             paths_to_validate.update(
-                get_paths_in_connector_config(oauth_config_specification.complete_oauth_output_specification["properties"])
+                get_paths_in_connector_config(
+                    oauth_config_specification.complete_oauth_output_specification[
+                        "properties"
+                    ]
+                )
             )
         if oauth_config_specification.complete_oauth_server_output_specification:
             paths_to_validate.update(
-                get_paths_in_connector_config(oauth_config_specification.complete_oauth_server_output_specification["properties"])
+                get_paths_in_connector_config(
+                    oauth_config_specification.complete_oauth_server_output_specification[
+                        "properties"
+                    ]
+                )
             )
 
     diff = paths_to_validate - set(get_expected_schema_structure(spec_schema))
@@ -463,17 +555,23 @@ async def test_oauth_is_default_method(target_spec: ConnectorSpecification):
     if not advanced_auth:
         pytest.skip("Source does not have OAuth method.")
     if not advanced_auth.predicate_key:
-        pytest.skip("Advanced Auth object does not have predicate_key, only one option to authenticate.")
+        pytest.skip(
+            "Advanced Auth object does not have predicate_key, only one option to authenticate."
+        )
 
     spec_schema = target_spec.connectionSpecification
     credentials = advanced_auth.predicate_key[0]
     try:
-        one_of_default_method = dpath.util.get(spec_schema, f"/**/{credentials}/oneOf/0")
+        one_of_default_method = dpath.util.get(
+            spec_schema, f"/**/{credentials}/oneOf/0"
+        )
     except KeyError as e:  # Key Error when oneOf is not in credentials object
         pytest.skip("Credentials object does not have oneOf option.")
 
     path_in_credentials = "/".join(advanced_auth.predicate_key[1:])
-    auth_method_predicate_const = dpath.util.get(one_of_default_method, f"/**/{path_in_credentials}/const")
+    auth_method_predicate_const = dpath.util.get(
+        one_of_default_method, f"/**/{path_in_credentials}/const"
+    )
     assert (
         auth_method_predicate_const == advanced_auth.predicate_value
     ), f"Oauth method should be a default option. Current default method is {auth_method_predicate_const}."
@@ -485,8 +583,13 @@ async def test_additional_properties_is_true(target_spec: ConnectorSpecification
     Specifically, when removing a property from the spec, existing connector configs will no longer be valid.
     False value introduces the risk of accidental breaking changes.
     Read https://github.com/airbytehq/airbyte/issues/14196 for more details"""
-    additional_properties_values = find_all_values_for_key_in_schema(target_spec.connectionSpecification, "additionalProperties")
+    additional_properties_values = find_all_values_for_key_in_schema(
+        target_spec.connectionSpecification, "additionalProperties"
+    )
     if additional_properties_values:
         assert all(
-            [additional_properties_value is True for additional_properties_value in additional_properties_values]
+            [
+                additional_properties_value is True
+                for additional_properties_value in additional_properties_values
+            ]
         ), "When set, additionalProperties field value must be true for backward compatibility."

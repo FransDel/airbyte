@@ -206,8 +206,8 @@ class TestSpec(BaseTest):
                 assert (
                     "default" not in prop_obj or prop_obj["default"] == prop_obj["const"]
                 ), f"'default' needs to be identical to const in common property {oneof_path}[{n}].{const_common_prop}. It's recommended to just use `const`. {docs_msg}"
-                assert "enum" not in prop_obj or (
-                    len(prop_obj["enum"]) == 1 and prop_obj["enum"][0] == prop_obj["const"]
+                assert (
+                    "enum" not in prop_obj or (len(prop_obj["enum"]) == 1 and prop_obj["enum"][0] == prop_obj["const"])
                 ), f"'enum' needs to be an array with a single item identical to const in common property {oneof_path}[{n}].{const_common_prop}. It's recommended to just use `const`. {docs_msg}"
 
     def test_required(self):
@@ -909,9 +909,7 @@ class TestBasicRead(BaseTest):
             record_fields = set(get_object_structure(record.data))
             common_fields = set.intersection(record_fields, schema_paths)
 
-            assert (
-                common_fields
-            ), f" Record {record} from {record.stream} stream with fields {record_fields} should have some fields mentioned by json schema: {schema_paths}"
+            assert common_fields, f" Record {record} from {record.stream} stream with fields {record_fields} should have some fields mentioned by json schema: {schema_paths}"
 
     @staticmethod
     def _validate_schema(records: List[AirbyteRecordMessage], configured_catalog: ConfiguredAirbyteCatalog):
@@ -1393,9 +1391,7 @@ class TestConnectorAttributes(BaseTest):
 
         hosts = allowed_hosts.get("hosts", [])
         has_assigned_hosts = len(hosts) > 0 if hosts else False
-        assert (
-            has_assigned_hosts
-        ), f"The `hosts` empty list is not allowed for `metadata.data.allowedHosts` for certified connectors. Please add `hosts` or define the `allowed_hosts.bypass_reason` in `acceptance-test-config.yaml`."
+        assert has_assigned_hosts, f"The `hosts` empty list is not allowed for `metadata.data.allowedHosts` for certified connectors. Please add `hosts` or define the `allowed_hosts.bypass_reason` in `acceptance-test-config.yaml`."
 
     @pytest.fixture(name="suggested_streams_test")
     def suggested_streams_fixture_test(self, inputs: ConnectorAttributesConfig) -> bool:
@@ -1586,12 +1582,10 @@ class TestConnectorDocumentation(BaseTest):
 
         for heading, description in template_descriptions.items():
             if heading in actual_headings:
-
                 description_start_line = header_line_map[heading]
                 description_end_line = docs_utils.description_end_line_index(heading, actual_headings, header_line_map)
 
                 with open(docs_path, "r") as docs_file, open(description, "r") as template_file:
-
                     docs_description_content = docs_file.readlines()[description_start_line:description_end_line]
                     template_description_content = template_file.readlines()
 

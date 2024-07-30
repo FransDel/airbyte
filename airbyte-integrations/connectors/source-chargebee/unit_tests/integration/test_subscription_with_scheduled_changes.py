@@ -36,65 +36,67 @@ _CURSOR_FIELD = "updated_at"
 _NO_STATE = {}
 _NOW = datetime.now(timezone.utc)
 
+
 def _a_parent_request() -> ChargebeeRequestBuilder:
     return ChargebeeRequestBuilder.subscription_endpoint(_SITE, _SITE_API_KEY)
+
 
 def _a_child_request() -> ChargebeeSubstreamRequestBuilder:
     return ChargebeeSubstreamRequestBuilder.subscription_with_scheduled_changes_endpoint(_SITE, _SITE_API_KEY)
 
+
 def _config() -> ConfigBuilder:
     return ConfigBuilder().with_site(_SITE).with_site_api_key(_SITE_API_KEY).with_product_catalog(_PRODUCT_CATALOG)
+
 
 def _catalog(sync_mode: SyncMode) -> ConfiguredAirbyteCatalog:
     return CatalogBuilder().with_stream(_STREAM_NAME, sync_mode).with_stream("subscription", sync_mode).build()
 
+
 def _source() -> SourceChargebee:
     return SourceChargebee()
+
 
 def _a_parent_record() -> RecordBuilder:
     return create_record_builder(
         find_template("subscription", __file__),
         FieldPath("list"),
         record_id_path=NestedPath(["subscription", _PRIMARY_KEY]),
-        record_cursor_path=NestedPath(["subscription", _CURSOR_FIELD])
+        record_cursor_path=NestedPath(["subscription", _CURSOR_FIELD]),
     )
+
 
 def _a_child_record() -> RecordBuilder:
     return create_record_builder(
         find_template("subscription_with_scheduled_changes", __file__),
         FieldPath("list"),
         record_id_path=NestedPath(["subscription", _PRIMARY_KEY]),
-        record_cursor_path=NestedPath(["subscription", _CURSOR_FIELD])
+        record_cursor_path=NestedPath(["subscription", _CURSOR_FIELD]),
     )
+
 
 def _a_parent_response() -> HttpResponseBuilder:
     return create_response_builder(
-        find_template("subscription", __file__),
-        FieldPath("list"),
-        pagination_strategy=ChargebeePaginationStrategy()
+        find_template("subscription", __file__), FieldPath("list"), pagination_strategy=ChargebeePaginationStrategy()
     )
+
 
 def _a_child_response() -> HttpResponseBuilder:
-
     return create_response_builder(
-        find_template("subscription_with_scheduled_changes", __file__),
-        FieldPath("list"),
-        pagination_strategy=ChargebeePaginationStrategy()
+        find_template("subscription_with_scheduled_changes", __file__), FieldPath("list"), pagination_strategy=ChargebeePaginationStrategy()
     )
 
+
 def _read(
-    config_builder: ConfigBuilder,
-    sync_mode: SyncMode,
-    state: Optional[Dict[str, Any]] = None,
-    expecting_exception: bool = False
+    config_builder: ConfigBuilder, sync_mode: SyncMode, state: Optional[Dict[str, Any]] = None, expecting_exception: bool = False
 ) -> EntrypointOutput:
     catalog = _catalog(sync_mode)
     config = config_builder.build()
     return read(_source(), config, catalog, state, expecting_exception)
 
+
 @freezegun.freeze_time(_NOW.isoformat())
 class FullRefreshTest(TestCase):
-
     def setUp(self) -> None:
         self._now = _NOW
         self._now_in_seconds = int(self._now.timestamp())
@@ -107,16 +109,19 @@ class FullRefreshTest(TestCase):
 
     @HttpMocker()
     def test_given_valid_response_records_are_extracted_and_returned(self, http_mocker: HttpMocker) -> None:
-
         parent_id = "subscription_test"
 
         http_mocker.get(
             _a_parent_request().with_any_query_params().build(),
-            _a_parent_response().with_record(_a_parent_record().with_id(parent_id)).build()
+            _a_parent_response().with_record(_a_parent_record().with_id(parent_id)).build(),
         )
         http_mocker.get(
-            _a_child_request().with_parent_id(parent_id).with_endpoint_path("retrieve_with_scheduled_changes").with_any_query_params().build(),
-            _a_child_response().with_record(_a_child_record().with_id(parent_id)).build()
+            _a_child_request()
+            .with_parent_id(parent_id)
+            .with_endpoint_path("retrieve_with_scheduled_changes")
+            .with_any_query_params()
+            .build(),
+            _a_child_response().with_record(_a_child_record().with_id(parent_id)).build(),
         )
 
         output = self._read(_config().with_start_date(self._start_date))
@@ -124,15 +129,18 @@ class FullRefreshTest(TestCase):
 
     @HttpMocker()
     def test_given_http_status_400_when_read_then_stream_is_ignored(self, http_mocker: HttpMocker) -> None:
-
         parent_id = "subscription_test"
 
         http_mocker.get(
             _a_parent_request().with_any_query_params().build(),
-            _a_parent_response().with_record(_a_parent_record().with_id(parent_id)).build()
+            _a_parent_response().with_record(_a_parent_record().with_id(parent_id)).build(),
         )
         http_mocker.get(
-            _a_child_request().with_parent_id(parent_id).with_endpoint_path("retrieve_with_scheduled_changes").with_any_query_params().build(),
+            _a_child_request()
+            .with_parent_id(parent_id)
+            .with_endpoint_path("retrieve_with_scheduled_changes")
+            .with_any_query_params()
+            .build(),
             a_response_with_status(400),
         )
 
@@ -140,15 +148,18 @@ class FullRefreshTest(TestCase):
 
     @HttpMocker()
     def test_given_http_status_404_when_read_then_stream_is_ignored(self, http_mocker: HttpMocker) -> None:
-
         parent_id = "subscription_test"
 
         http_mocker.get(
             _a_parent_request().with_any_query_params().build(),
-            _a_parent_response().with_record(_a_parent_record().with_id(parent_id)).build()
+            _a_parent_response().with_record(_a_parent_record().with_id(parent_id)).build(),
         )
         http_mocker.get(
-            _a_child_request().with_parent_id(parent_id).with_endpoint_path("retrieve_with_scheduled_changes").with_any_query_params().build(),
+            _a_child_request()
+            .with_parent_id(parent_id)
+            .with_endpoint_path("retrieve_with_scheduled_changes")
+            .with_any_query_params()
+            .build(),
             a_response_with_status(404),
         )
 

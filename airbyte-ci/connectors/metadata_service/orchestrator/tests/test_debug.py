@@ -71,7 +71,6 @@ def debug_badges():
 
 
 def debug_registry_entry():
-
     resources = {
         "gcp_gcs_client": gcp_gcs_client.configured(
             {

@@ -97,7 +97,6 @@ class AirtableTables(AirtableBases):
 
 class AirtableStream(HttpStream, ABC):
     def __init__(self, stream_path: str, stream_name: str, stream_schema, table_name: str, **kwargs):
-
         self.stream_name = stream_name
         self.stream_path = stream_path
         self.stream_schema = stream_schema

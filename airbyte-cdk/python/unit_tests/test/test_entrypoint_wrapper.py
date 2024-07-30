@@ -32,7 +32,12 @@ from airbyte_protocol.models import (
 
 
 def _a_state_message(stream_name: str, stream_state: Mapping[str, Any]) -> AirbyteMessage:
-    return AirbyteMessage(type=Type.STATE, state=AirbyteStateMessage(stream=AirbyteStreamState(stream_descriptor=StreamDescriptor(name=stream_name), stream_state=AirbyteStateBlob(**stream_state))))
+    return AirbyteMessage(
+        type=Type.STATE,
+        state=AirbyteStateMessage(
+            stream=AirbyteStreamState(stream_descriptor=StreamDescriptor(name=stream_name), stream_state=AirbyteStateBlob(**stream_state))
+        ),
+    )
 
 
 def _a_status_message(stream_name: str, status: AirbyteStreamStatus) -> AirbyteMessage:
@@ -271,7 +276,9 @@ class EntrypointWrapperReadTest(TestCase):
     @patch("airbyte_cdk.test.entrypoint_wrapper.AirbyteEntrypoint")
     def test_given_many_state_messages_and_records_when_read_then_output_has_records_and_state_message(self, entrypoint):
         state_value = {"state_key": "last state value"}
-        last_emitted_state = AirbyteStreamState(stream_descriptor=StreamDescriptor(name="stream_name"), stream_state=AirbyteStateBlob(**state_value))
+        last_emitted_state = AirbyteStreamState(
+            stream_descriptor=StreamDescriptor(name="stream_name"), stream_state=AirbyteStateBlob(**state_value)
+        )
         entrypoint.return_value.run.return_value = _to_entrypoint_output([_A_STATE_MESSAGE, _a_state_message("stream_name", state_value)])
 
         output = read(self._a_source, _A_CONFIG, _A_CATALOG, _A_STATE)

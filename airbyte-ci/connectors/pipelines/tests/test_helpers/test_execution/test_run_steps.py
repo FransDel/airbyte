@@ -4,7 +4,12 @@ import time
 
 import anyio
 import pytest
-from pipelines.helpers.execution.run_steps import InvalidStepConfiguration, RunStepOptions, StepToRun, run_steps
+from pipelines.helpers.execution.run_steps import (
+    InvalidStepConfiguration,
+    RunStepOptions,
+    StepToRun,
+    run_steps,
+)
 from pipelines.models.contexts.pipeline_context import PipelineContext
 from pipelines.models.steps import Step, StepResult, StepStatus
 
@@ -38,7 +43,12 @@ class TestStep(Step):
                 [StepToRun(id="step3", step=TestStep(test_context))],
                 [StepToRun(id="step4", step=TestStep(test_context))],
             ],
-            {"step1": StepStatus.SUCCESS, "step2": StepStatus.SUCCESS, "step3": StepStatus.SUCCESS, "step4": StepStatus.SUCCESS},
+            {
+                "step1": StepStatus.SUCCESS,
+                "step2": StepStatus.SUCCESS,
+                "step3": StepStatus.SUCCESS,
+                "step4": StepStatus.SUCCESS,
+            },
             RunStepOptions(fail_fast=True),
         ),
         (
@@ -51,29 +61,56 @@ class TestStep(Step):
                 ],
                 [StepToRun(id="step4", step=TestStep(test_context))],
             ],
-            {"step1": StepStatus.SUCCESS, "step2": StepStatus.SUCCESS, "step3": StepStatus.SUCCESS, "step4": StepStatus.SUCCESS},
+            {
+                "step1": StepStatus.SUCCESS,
+                "step2": StepStatus.SUCCESS,
+                "step3": StepStatus.SUCCESS,
+                "step4": StepStatus.SUCCESS,
+            },
             RunStepOptions(fail_fast=True),
         ),
         (
             "Steps after a failed step are skipped, when fail_fast is True",
             [
                 [StepToRun(id="step1", step=TestStep(test_context))],
-                [StepToRun(id="step2", step=TestStep(test_context), args={"result_status": StepStatus.FAILURE})],
+                [
+                    StepToRun(
+                        id="step2",
+                        step=TestStep(test_context),
+                        args={"result_status": StepStatus.FAILURE},
+                    )
+                ],
                 [StepToRun(id="step3", step=TestStep(test_context))],
                 [StepToRun(id="step4", step=TestStep(test_context))],
             ],
-            {"step1": StepStatus.SUCCESS, "step2": StepStatus.FAILURE, "step3": StepStatus.SKIPPED, "step4": StepStatus.SKIPPED},
+            {
+                "step1": StepStatus.SUCCESS,
+                "step2": StepStatus.FAILURE,
+                "step3": StepStatus.SKIPPED,
+                "step4": StepStatus.SKIPPED,
+            },
             RunStepOptions(fail_fast=True),
         ),
         (
             "Steps after a failed step are not skipped, when fail_fast is False",
             [
                 [StepToRun(id="step1", step=TestStep(test_context))],
-                [StepToRun(id="step2", step=TestStep(test_context), args={"result_status": StepStatus.FAILURE})],
+                [
+                    StepToRun(
+                        id="step2",
+                        step=TestStep(test_context),
+                        args={"result_status": StepStatus.FAILURE},
+                    )
+                ],
                 [StepToRun(id="step3", step=TestStep(test_context))],
                 [StepToRun(id="step4", step=TestStep(test_context))],
             ],
-            {"step1": StepStatus.SUCCESS, "step2": StepStatus.FAILURE, "step3": StepStatus.SUCCESS, "step4": StepStatus.SUCCESS},
+            {
+                "step1": StepStatus.SUCCESS,
+                "step2": StepStatus.FAILURE,
+                "step3": StepStatus.SUCCESS,
+                "step4": StepStatus.SUCCESS,
+            },
             RunStepOptions(fail_fast=False),
         ),
         (
@@ -86,7 +123,12 @@ class TestStep(Step):
                 ],
                 [StepToRun(id="step4", step=TestStep(test_context))],
             ],
-            {"step1": StepStatus.SUCCESS, "step2": StepStatus.SUCCESS, "step3": StepStatus.SUCCESS, "step4": StepStatus.SUCCESS},
+            {
+                "step1": StepStatus.SUCCESS,
+                "step2": StepStatus.SUCCESS,
+                "step3": StepStatus.SUCCESS,
+                "step4": StepStatus.SUCCESS,
+            },
             RunStepOptions(fail_fast=False),
         ),
         (
@@ -122,7 +164,11 @@ class TestStep(Step):
                     [StepToRun(id="step3", step=TestStep(test_context))],
                     [
                         StepToRun(id="step4", step=TestStep(test_context)),
-                        StepToRun(id="step5", step=TestStep(test_context), args={"result_status": StepStatus.FAILURE}),
+                        StepToRun(
+                            id="step5",
+                            step=TestStep(test_context),
+                            args={"result_status": StepStatus.FAILURE},
+                        ),
                     ],
                 ],
                 [StepToRun(id="step6", step=TestStep(test_context))],
@@ -146,7 +192,11 @@ class TestStep(Step):
                     [StepToRun(id="step3", step=TestStep(test_context))],
                     [
                         StepToRun(id="step4", step=TestStep(test_context)),
-                        StepToRun(id="step5", step=TestStep(test_context), args={"result_status": StepStatus.FAILURE}),
+                        StepToRun(
+                            id="step5",
+                            step=TestStep(test_context),
+                            args={"result_status": StepStatus.FAILURE},
+                        ),
                     ],
                 ],
                 [StepToRun(id="step6", step=TestStep(test_context))],
@@ -169,7 +219,12 @@ class TestStep(Step):
                 StepToRun(id="step3", step=TestStep(test_context)),
                 StepToRun(id="step4", step=TestStep(test_context)),
             ],
-            {"step1": StepStatus.SUCCESS, "step2": StepStatus.SUCCESS, "step3": StepStatus.SUCCESS, "step4": StepStatus.SUCCESS},
+            {
+                "step1": StepStatus.SUCCESS,
+                "step2": StepStatus.SUCCESS,
+                "step3": StepStatus.SUCCESS,
+                "step4": StepStatus.SUCCESS,
+            },
             RunStepOptions(fail_fast=False),
         ),
         (
@@ -180,17 +235,36 @@ class TestStep(Step):
                 StepToRun(id="step3", step=TestStep(test_context)),
                 StepToRun(id="step4", step=TestStep(test_context)),
             ],
-            {"step1": StepStatus.SUCCESS, "step2": StepStatus.SKIPPED, "step3": StepStatus.SUCCESS, "step4": StepStatus.SUCCESS},
+            {
+                "step1": StepStatus.SUCCESS,
+                "step2": StepStatus.SKIPPED,
+                "step3": StepStatus.SUCCESS,
+                "step4": StepStatus.SUCCESS,
+            },
             RunStepOptions(fail_fast=False, skip_steps=["step2"]),
         ),
         (
             "step is skipped if the dependency fails",
             [
                 [StepToRun(id="step1", step=TestStep(test_context))],
-                [StepToRun(id="step2", step=TestStep(test_context), args={"result_status": StepStatus.FAILURE})],
-                [StepToRun(id="step3", step=TestStep(test_context), depends_on=["step2"])],
+                [
+                    StepToRun(
+                        id="step2",
+                        step=TestStep(test_context),
+                        args={"result_status": StepStatus.FAILURE},
+                    )
+                ],
+                [
+                    StepToRun(
+                        id="step3", step=TestStep(test_context), depends_on=["step2"]
+                    )
+                ],
             ],
-            {"step1": StepStatus.SUCCESS, "step2": StepStatus.FAILURE, "step3": StepStatus.SKIPPED},
+            {
+                "step1": StepStatus.SUCCESS,
+                "step2": StepStatus.FAILURE,
+                "step3": StepStatus.SKIPPED,
+            },
             RunStepOptions(fail_fast=False),
         ),
     ],
@@ -226,10 +300,18 @@ async def test_run_steps_concurrent():
             return StepResult(step=self, status=StepStatus.SUCCESS)
 
     steps = [
-        StepToRun(id="step1", step=SleepStep(test_context), args={"name": "step1", "sleep": 2}),
-        StepToRun(id="step2", step=SleepStep(test_context), args={"name": "step2", "sleep": 2}),
-        StepToRun(id="step3", step=SleepStep(test_context), args={"name": "step3", "sleep": 2}),
-        StepToRun(id="step4", step=SleepStep(test_context), args={"name": "step4", "sleep": 0}),
+        StepToRun(
+            id="step1", step=SleepStep(test_context), args={"name": "step1", "sleep": 2}
+        ),
+        StepToRun(
+            id="step2", step=SleepStep(test_context), args={"name": "step2", "sleep": 2}
+        ),
+        StepToRun(
+            id="step3", step=SleepStep(test_context), args={"name": "step3", "sleep": 2}
+        ),
+        StepToRun(
+            id="step4", step=SleepStep(test_context), args={"name": "step4", "sleep": 0}
+        ),
     ]
 
     await run_steps(steps)
@@ -253,10 +335,18 @@ async def test_run_steps_concurrency_of_1():
             return StepResult(step=self, status=StepStatus.SUCCESS)
 
     steps = [
-        StepToRun(id="step1", step=SleepStep(test_context), args={"name": "step1", "sleep": 1}),
-        StepToRun(id="step2", step=SleepStep(test_context), args={"name": "step2", "sleep": 1}),
-        StepToRun(id="step3", step=SleepStep(test_context), args={"name": "step3", "sleep": 1}),
-        StepToRun(id="step4", step=SleepStep(test_context), args={"name": "step4", "sleep": 1}),
+        StepToRun(
+            id="step1", step=SleepStep(test_context), args={"name": "step1", "sleep": 1}
+        ),
+        StepToRun(
+            id="step2", step=SleepStep(test_context), args={"name": "step2", "sleep": 1}
+        ),
+        StepToRun(
+            id="step3", step=SleepStep(test_context), args={"name": "step3", "sleep": 1}
+        ),
+        StepToRun(
+            id="step4", step=SleepStep(test_context), args={"name": "step4", "sleep": 1}
+        ),
     ]
 
     await run_steps(steps, options=RunStepOptions(concurrency=1))
@@ -280,10 +370,34 @@ async def test_run_steps_sequential():
             return StepResult(step=self, status=StepStatus.SUCCESS)
 
     steps = [
-        [StepToRun(id="step1", step=SleepStep(test_context), args={"name": "step1", "sleep": 1})],
-        [StepToRun(id="step1", step=SleepStep(test_context), args={"name": "step2", "sleep": 1})],
-        [StepToRun(id="step3", step=SleepStep(test_context), args={"name": "step3", "sleep": 1})],
-        [StepToRun(id="step4", step=SleepStep(test_context), args={"name": "step4", "sleep": 0})],
+        [
+            StepToRun(
+                id="step1",
+                step=SleepStep(test_context),
+                args={"name": "step1", "sleep": 1},
+            )
+        ],
+        [
+            StepToRun(
+                id="step1",
+                step=SleepStep(test_context),
+                args={"name": "step2", "sleep": 1},
+            )
+        ],
+        [
+            StepToRun(
+                id="step3",
+                step=SleepStep(test_context),
+                args={"name": "step3", "sleep": 1},
+            )
+        ],
+        [
+            StepToRun(
+                id="step4",
+                step=SleepStep(test_context),
+                args={"name": "step4", "sleep": 0},
+            )
+        ],
     ]
 
     await run_steps(steps)
@@ -324,8 +438,18 @@ async def test_run_steps_passes_results():
         return {"arg1": results["step2"].output, "arg2": "4"}
 
     steps = [
-        [StepToRun(id="step1", step=Simple(test_context), args={"arg1": "1", "arg2": "2"})],
-        [StepToRun(id="step2", step=Simple(test_context), args=lambda results: {"arg1": results["step1"].output, "arg2": "3"})],
+        [
+            StepToRun(
+                id="step1", step=Simple(test_context), args={"arg1": "1", "arg2": "2"}
+            )
+        ],
+        [
+            StepToRun(
+                id="step2",
+                step=Simple(test_context),
+                args=lambda results: {"arg1": results["step1"].output, "arg2": "3"},
+            )
+        ],
         [StepToRun(id="step3", step=Simple(test_context), args=async_args)],
     ]
 
@@ -359,7 +483,9 @@ async def test_run_steps_throws_on_invalid_args(invalid_args):
 @pytest.mark.anyio
 async def test_run_steps_with_params():
     steps = [StepToRun(id="step1", step=TestStep(test_context))]
-    options = RunStepOptions(fail_fast=True, step_params={"step1": {"--param1": ["value1"]}})
+    options = RunStepOptions(
+        fail_fast=True, step_params={"step1": {"--param1": ["value1"]}}
+    )
     TestStep.accept_extra_params = False
     with pytest.raises(ValueError):
         await run_steps(steps, options=options)
@@ -377,7 +503,12 @@ class TestRunStepOptions:
         assert options.skip_steps == []
         assert options.step_params == {}
 
-        options = RunStepOptions(fail_fast=False, concurrency=1, skip_steps=["step1"], step_params={"step1": {"--param1": ["value1"]}})
+        options = RunStepOptions(
+            fail_fast=False,
+            concurrency=1,
+            skip_steps=["step1"],
+            step_params={"step1": {"--param1": ["value1"]}},
+        )
         assert options.fail_fast is False
         assert options.concurrency == 1
         assert options.skip_steps == ["step1"]
@@ -391,9 +522,16 @@ class TestRunStepOptions:
         [
             (
                 [
-                    [StepToRun(id="step1", step=TestStep(test_context)), StepToRun(id="step2", step=TestStep(test_context))],
+                    [
+                        StepToRun(id="step1", step=TestStep(test_context)),
+                        StepToRun(id="step2", step=TestStep(test_context)),
+                    ],
                     StepToRun(id="step3", step=TestStep(test_context)),
-                    StepToRun(id="step4", step=TestStep(test_context), depends_on=["step3", "step1"]),
+                    StepToRun(
+                        id="step4",
+                        step=TestStep(test_context),
+                        depends_on=["step3", "step1"],
+                    ),
                     StepToRun(id="step5", step=TestStep(test_context)),
                 ],
                 RunStepOptions(keep_steps=["step4"]),
@@ -401,26 +539,52 @@ class TestRunStepOptions:
             ),
             (
                 [
-                    [StepToRun(id="step1", step=TestStep(test_context)), StepToRun(id="step2", step=TestStep(test_context))],
+                    [
+                        StepToRun(id="step1", step=TestStep(test_context)),
+                        StepToRun(id="step2", step=TestStep(test_context)),
+                    ],
                     StepToRun(id="step3", step=TestStep(test_context)),
                     [
-                        StepToRun(id="step4", step=TestStep(test_context), depends_on=["step1"]),
-                        StepToRun(id="step6", step=TestStep(test_context), depends_on=["step4", "step5"]),
+                        StepToRun(
+                            id="step4",
+                            step=TestStep(test_context),
+                            depends_on=["step1"],
+                        ),
+                        StepToRun(
+                            id="step6",
+                            step=TestStep(test_context),
+                            depends_on=["step4", "step5"],
+                        ),
                     ],
-                    StepToRun(id="step5", step=TestStep(test_context), depends_on=["step3"]),
+                    StepToRun(
+                        id="step5", step=TestStep(test_context), depends_on=["step3"]
+                    ),
                 ],
                 RunStepOptions(keep_steps=["step6"]),
                 {"step2"},
             ),
             (
                 [
-                    [StepToRun(id="step1", step=TestStep(test_context)), StepToRun(id="step2", step=TestStep(test_context))],
+                    [
+                        StepToRun(id="step1", step=TestStep(test_context)),
+                        StepToRun(id="step2", step=TestStep(test_context)),
+                    ],
                     StepToRun(id="step3", step=TestStep(test_context)),
                     [
-                        StepToRun(id="step4", step=TestStep(test_context), depends_on=["step1"]),
-                        StepToRun(id="step6", step=TestStep(test_context), depends_on=["step4", "step5"]),
+                        StepToRun(
+                            id="step4",
+                            step=TestStep(test_context),
+                            depends_on=["step1"],
+                        ),
+                        StepToRun(
+                            id="step6",
+                            step=TestStep(test_context),
+                            depends_on=["step4", "step5"],
+                        ),
                     ],
-                    StepToRun(id="step5", step=TestStep(test_context), depends_on=["step3"]),
+                    StepToRun(
+                        id="step5", step=TestStep(test_context), depends_on=["step3"]
+                    ),
                 ],
                 RunStepOptions(skip_steps=["step1"]),
                 {"step1"},

@@ -42,13 +42,12 @@ def _get_config(start_date: datetime, bulk_window: int = 1) -> Dict[str, Any]:
             "auth_method": "api_password",
             "api_password": "api_password",
         },
-        "bulk_window_in_days": bulk_window
+        "bulk_window_in_days": bulk_window,
     }
 
 
 @freeze_time(_JOB_END_DATE)
 class GraphQlBulkStreamTest(TestCase):
-
     def setUp(self) -> None:
         self._http_mocker = HttpMocker()
         self._http_mocker.__enter__()
@@ -95,8 +94,10 @@ class GraphQlBulkStreamTest(TestCase):
             job_creation_request,
             [
                 HttpResponse("This is not json"),
-                JobCreationResponseBuilder().with_bulk_operation_id(_BULK_OPERATION_ID).build(),  # This will never get called (see assertion below)
-            ]
+                JobCreationResponseBuilder()
+                .with_bulk_operation_id(_BULK_OPERATION_ID)
+                .build(),  # This will never get called (see assertion below)
+            ],
         )
 
         self._http_mocker.post(
@@ -118,8 +119,11 @@ class GraphQlBulkStreamTest(TestCase):
         inner_mocker.register_uri(  # TODO the testing library should have the ability to generate ConnectionError. As this might not be trivial, we will wait for another case before implementing
             "POST",
             _URL_GRAPHQL,
-            [{"exc": ConnectionError("ConnectionError")}, {"text": JobCreationResponseBuilder().with_bulk_operation_id(_BULK_OPERATION_ID).build().body, "status_code": 200}],
-            additional_matcher=lambda request: request.text == create_job_creation_body(_JOB_START_DATE, _JOB_END_DATE)
+            [
+                {"exc": ConnectionError("ConnectionError")},
+                {"text": JobCreationResponseBuilder().with_bulk_operation_id(_BULK_OPERATION_ID).build().body, "status_code": 200},
+            ],
+            additional_matcher=lambda request: request.text == create_job_creation_body(_JOB_START_DATE, _JOB_END_DATE),
         )
         self._http_mocker.post(
             create_job_status_request(_SHOP_NAME, _BULK_OPERATION_ID),
@@ -144,7 +148,7 @@ class GraphQlBulkStreamTest(TestCase):
             [
                 _AN_ERROR_RESPONSE,
                 JobStatusResponseBuilder().with_completed_status(_BULK_OPERATION_ID, _JOB_RESULT_URL).build(),
-            ]
+            ],
         )
         self._http_mocker.get(
             HttpRequest(_JOB_RESULT_URL),
@@ -167,7 +171,7 @@ class GraphQlBulkStreamTest(TestCase):
                 JobStatusResponseBuilder().with_running_status(_BULK_OPERATION_ID).build(),
                 HttpResponse(json.dumps({"errors": ["an error"]})),
                 JobStatusResponseBuilder().with_completed_status(_BULK_OPERATION_ID, _JOB_RESULT_URL).build(),
-            ]
+            ],
         )
         self._http_mocker.get(
             HttpRequest(_JOB_RESULT_URL),

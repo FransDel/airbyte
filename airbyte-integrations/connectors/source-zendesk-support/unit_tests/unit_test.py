@@ -1105,8 +1105,7 @@ class TestTicketSubstream:
     def test_read_ticket_metrics_with_error(self, requests_mock):
         stream = get_stream_instance(TicketMetrics, STREAM_ARGS)
         requests_mock.get(
-            f"https://sandbox.zendesk.com/api/v2/tickets/13/metrics",
-            json={"error": "RecordNotFound", "description": "Not found"}
+            f"https://sandbox.zendesk.com/api/v2/tickets/13/metrics", json={"error": "RecordNotFound", "description": "Not found"}
         )
 
         records = list(stream.read_records(sync_mode=SyncMode.full_refresh, stream_slice={"ticket_id": "13"}))
@@ -1116,12 +1115,12 @@ class TestTicketSubstream:
     @pytest.mark.parametrize(
         "status_code, response_action",
         (
-                (200, ResponseAction.SUCCESS),
-                (404, ResponseAction.IGNORE),
-                (403, ResponseAction.IGNORE),
-                (500, ResponseAction.RETRY),
-                (429, ResponseAction.RATE_LIMITED),
-        )
+            (200, ResponseAction.SUCCESS),
+            (404, ResponseAction.IGNORE),
+            (403, ResponseAction.IGNORE),
+            (500, ResponseAction.RETRY),
+            (429, ResponseAction.RATE_LIMITED),
+        ),
     )
     def test_ticket_metrics_should_retry(self, status_code: int, response_action: bool):
         stream = get_stream_instance(TicketMetrics, STREAM_ARGS)

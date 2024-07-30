@@ -40,7 +40,11 @@ class AddChangelogEntry(Step):
 
     async def _run(self, pull_request_number: int | str | None = None) -> StepResult:
         if self.repo_dir is None:
-            self.repo_dir = await self.context.get_repo_dir(include=[str(self.context.connector.local_connector_documentation_directory)])
+            self.repo_dir = await self.context.get_repo_dir(
+                include=[
+                    str(self.context.connector.local_connector_documentation_directory)
+                ]
+            )
 
         if pull_request_number is None:
             # this allows passing it dynamically from a result of another action (like creating a pull request)
@@ -57,11 +61,20 @@ class AddChangelogEntry(Step):
         try:
             original_markdown = doc_path.read_text()
             changelog = Changelog(original_markdown)
-            changelog.add_entry(self.new_version, datetime.date.today(), pull_request_number, self.comment)
+            changelog.add_entry(
+                self.new_version,
+                datetime.date.today(),
+                pull_request_number,
+                self.comment,
+            )
             updated_doc = changelog.to_markdown()
         except Exception as e:
             return StepResult(
-                step=self, status=StepStatus.FAILURE, stderr=f"Could not add changelog entry: {e}", output=self.repo_dir, exc_info=e
+                step=self,
+                status=StepStatus.FAILURE,
+                stderr=f"Could not add changelog entry: {e}",
+                output=self.repo_dir,
+                exc_info=e,
             )
         self.repo_dir = self.repo_dir.with_new_file(str(doc_path), contents=updated_doc)
         self.modified_files.append(doc_path)

@@ -16,7 +16,6 @@ class RechargeErrorHandler(HttpStatusErrorHandler):
         super().__init__(logger=logger)
 
     def interpret_response(self, response_or_exception: Optional[Union[Response, Exception]] = None) -> ErrorResolution:
-
         if isinstance(response_or_exception, Response):
             content_length = int(response_or_exception.headers.get("Content-Length", 0))
             incomplete_data_response = response_or_exception.status_code == 200 and content_length > len(response_or_exception.content)

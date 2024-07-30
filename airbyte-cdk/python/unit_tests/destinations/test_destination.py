@@ -95,7 +95,7 @@ def write_file(path: PathLike, content: Union[str, Mapping]):
 
 
 def _wrapped(
-    msg: Union[AirbyteRecordMessage, AirbyteStateMessage, AirbyteCatalog, ConnectorSpecification, AirbyteConnectionStatus]
+    msg: Union[AirbyteRecordMessage, AirbyteStateMessage, AirbyteCatalog, ConnectorSpecification, AirbyteConnectionStatus],
 ) -> AirbyteMessage:
     if isinstance(msg, AirbyteRecordMessage):
         return AirbyteMessage(type=Type.RECORD, record=msg)
@@ -194,7 +194,7 @@ class TestRun:
         parsed_args = argparse.Namespace(**args)
         destination.run_cmd(parsed_args)
 
-        spec = {'type': 'integer'}
+        spec = {"type": "integer"}
         spec_msg = ConnectorSpecification(connectionSpecification=spec)
 
         mocker.patch.object(destination, "spec", return_value=spec_msg)
@@ -214,7 +214,7 @@ class TestRun:
         assert returned_check_result.type == Type.CONNECTION_STATUS
         assert returned_check_result.connectionStatus.status == Status.FAILED
         # the specific phrasing is not relevant, so only check for the keywords
-        assert 'validation error' in returned_check_result.connectionStatus.message
+        assert "validation error" in returned_check_result.connectionStatus.message
 
     def test_run_write(self, mocker, destination: Destination, tmp_path, monkeypatch):
         config_path, dummy_config = tmp_path / "config.json", {"user": "sherif"}
@@ -237,7 +237,10 @@ class TestRun:
 
         expected_write_result = [_wrapped(_state({"k1": "v1"})), _wrapped(_state({"k2": "v2"}))]
         mocker.patch.object(
-            destination, "write", return_value=iter(expected_write_result), autospec=True  # convert to iterator to mimic real usage
+            destination,
+            "write",
+            return_value=iter(expected_write_result),
+            autospec=True,  # convert to iterator to mimic real usage
         )
         spec_msg = ConnectorSpecification(connectionSpecification={})
         mocker.patch.object(destination, "spec", return_value=spec_msg)

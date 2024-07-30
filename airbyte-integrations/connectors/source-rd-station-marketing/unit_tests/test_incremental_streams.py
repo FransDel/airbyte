@@ -12,10 +12,7 @@ from source_rd_station_marketing.source import SourceRDStationMarketing
 def mock_response():
     return {
         "account_id": 3127612,
-        "query_date": {
-            "start_date": "2024-06-22",
-            "end_date": "2024-06-22"
-        },
+        "query_date": {"start_date": "2024-06-22", "end_date": "2024-06-22"},
         "assets_type": "[LandingPage]",
         "conversions": [
             {
@@ -26,9 +23,9 @@ def mock_response():
                 "asset_updated_at": "2022-06-30T20:11:05.191Z",
                 "visits_count": 1500,
                 "conversions_count": 150,
-                "conversion_rate": 10
+                "conversion_rate": 10,
             }
-        ]
+        ],
     }
     # return {"updated_time": "2021-10-22"}
 
@@ -67,8 +64,11 @@ def test_stream_slices(requests_mock, config_pass, auth_url, auth_token, analyti
     requests_mock.get(url=analytics_conversions_url, status_code=200, json=mock_response())
     requests_mock.post(url=auth_url, json=auth_token)
     stream = get_stream_by_name("analytics_conversions", config_pass)
-    inputs = {"sync_mode": SyncMode.incremental, "cursor_field": ["asset_updated_at"],
-              "stream_state": {"updatedAt": "2022-05-01T00:00:00.000Z"}}
+    inputs = {
+        "sync_mode": SyncMode.incremental,
+        "cursor_field": ["asset_updated_at"],
+        "stream_state": {"updatedAt": "2022-05-01T00:00:00.000Z"},
+    }
     assert stream.stream_slices(**inputs) is not None
 
 

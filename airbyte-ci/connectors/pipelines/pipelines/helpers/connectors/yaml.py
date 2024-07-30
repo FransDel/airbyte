@@ -24,7 +24,9 @@ async def read_yaml_from_directory(directory: Directory, file_path: str | Path) 
     return yaml.load(contents)
 
 
-async def write_yaml_to_directory(directory: Directory, yaml_input: dict | List, file_path: str | Path) -> Directory:
+async def write_yaml_to_directory(
+    directory: Directory, yaml_input: dict | List, file_path: str | Path
+) -> Directory:
     data = copy.deepcopy(yaml_input)
     yaml = YAML()
     buffer = io.BytesIO()

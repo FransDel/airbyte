@@ -199,7 +199,6 @@ class MockStreamWithCursor(MockStream):
 
 
 class MockStreamWithState(MockStreamWithCursor):
-
     def __init__(self, inputs_and_mocked_outputs: List[Tuple[Mapping[str, Any], Iterable[Mapping[str, Any]]]], name: str, state=None):
         super().__init__(inputs_and_mocked_outputs, name)
         self._state = state
@@ -980,13 +979,7 @@ class TestIncrementalRead:
             pytest.param(False, id="test_incoming_stream_state_as_per_stream_format"),
         ],
     )
-    @pytest.mark.parametrize(
-        "slices",
-        [
-            pytest.param([], id="test_slices_as_list"),
-            pytest.param(iter([]), id="test_slices_as_iterator")
-        ]
-    )
+    @pytest.mark.parametrize("slices", [pytest.param([], id="test_slices_as_list"), pytest.param(iter([]), id="test_slices_as_iterator")])
     def test_no_slices(self, mocker, use_legacy, slices):
         """
         Tests that an incremental read returns at least one state messages even if no records were read:
@@ -1323,10 +1316,7 @@ class TestIncrementalRead:
             ),
         ]
         stream_with_cursor = MockStreamWithCursor(
-            [
-                (
-                    {"sync_mode": SyncMode.incremental, "stream_slice": {}, "stream_state": initial_state}, stream_output)
-            ],
+            [({"sync_mode": SyncMode.incremental, "stream_slice": {}, "stream_state": initial_state}, stream_output)],
             name=stream_name,
         )
 
@@ -1334,6 +1324,7 @@ class TestIncrementalRead:
             state_cursor_value = current_stream_state.get(current_stream.cursor_field, 0)
             latest_record_value = latest_record.get(current_stream.cursor_field)
             return {current_stream.cursor_field: max(latest_record_value, state_cursor_value)}
+
         mocker.patch.object(MockStreamWithCursor, "get_updated_state", mock_get_updated_state)
         mocker.patch.object(MockStreamWithCursor, "get_json_schema", return_value={})
         src = MockSource(streams=[stream_with_cursor])
@@ -1575,7 +1566,7 @@ class TestResumableFullRefreshRead:
                     stream_descriptor=StreamDescriptor(name="s2"),
                     stream_state=AirbyteStateBlob.parse_obj({"page": 10}),
                 ),
-            )
+            ),
         ]
 
         src = MockSource(streams=[s1, s2])
@@ -1846,8 +1837,10 @@ def test_read_nonexistent_stream_emit_incomplete_stream_status(mocker, remove_st
 
     expected = _fix_emitted_at([as_stream_status("this_stream_doesnt_exist_in_the_source", AirbyteStreamStatus.INCOMPLETE)])
 
-    expected_error_message = "The stream 'this_stream_doesnt_exist_in_the_source' in your connection configuration was not found in the " \
-                             "source. Refresh the schema in your replication settings and remove this stream from future sync attempts."
+    expected_error_message = (
+        "The stream 'this_stream_doesnt_exist_in_the_source' in your connection configuration was not found in the "
+        "source. Refresh the schema in your replication settings and remove this stream from future sync attempts."
+    )
 
     with pytest.raises(AirbyteTracedException) as exc_info:
         messages = [remove_stack_trace(message) for message in src.read(logger, {}, catalog)]

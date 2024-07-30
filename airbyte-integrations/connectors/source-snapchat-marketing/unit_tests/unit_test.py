@@ -52,12 +52,14 @@ def test_organizations(requests_mock):
     requests_mock.post("https://accounts.snapchat.com/login/oauth2/access_token", json={"access_token": "XXX", "expires_in": 3600})
     requests_mock.get("https://adsapi.snapchat.com/v1/me/organizations", json=response_organizations)
     stream = find_stream("organizations", config_mock)
-    records = stream.read_records(sync_mode=SyncMode.full_refresh, stream_slice=StreamSlice(partition={},
-                                                                                            cursor_slice={"start_time": "2024-01-01",
-                                                                                                          "end_time": "2024-01-01"}),
-                                  stream_state=None)
+    records = stream.read_records(
+        sync_mode=SyncMode.full_refresh,
+        stream_slice=StreamSlice(partition={}, cursor_slice={"start_time": "2024-01-01", "end_time": "2024-01-01"}),
+        stream_state=None,
+    )
     assert json.dumps(next(records).data, sort_keys=True) == json.dumps(
-        {"id": "organization_id_1", "updated_at": "2024-02-05T22:35:17.819Z", "created_at": "2024-02-05T11:13:03.910Z"}, sort_keys=True)
+        {"id": "organization_id_1", "updated_at": "2024-02-05T22:35:17.819Z", "created_at": "2024-02-05T11:13:03.910Z"}, sort_keys=True
+    )
 
 
 response_adaccounts = {
@@ -291,7 +293,7 @@ def test_ads_stats_lifetime(requests_mock):
             "frequency": None,
             "uniques": None,
             "total_reach": None,
-            "earned_reach": None
+            "earned_reach": None,
         },
         {
             "id": "ad_id_2",
@@ -369,8 +371,8 @@ def test_ads_stats_lifetime(requests_mock):
             "frequency": None,
             "uniques": None,
             "total_reach": None,
-            "earned_reach": None
-        }
+            "earned_reach": None,
+        },
     ]
 
 

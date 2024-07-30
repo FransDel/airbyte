@@ -80,8 +80,7 @@ MANIFEST = {
                 "values": ["0", "1", "2", "3", "4", "5", "6", "7"],
                 "cursor_field": "item_id",
             },
-            ""
-            "requester": {
+            "" "requester": {
                 "path": "/v3/marketing/lists",
                 "authenticator": {"type": "BearerAuthenticator", "api_token": "{{ config.apikey }}"},
                 "request_parameters": {"a_param": "10"},
@@ -129,8 +128,7 @@ OAUTH_MANIFEST = {
                 "values": ["0", "1", "2", "3", "4", "5", "6", "7"],
                 "cursor_field": "item_id",
             },
-            ""
-            "requester": {
+            "" "requester": {
                 "path": "/v3/marketing/lists",
                 "authenticator": {"type": "OAuthAuthenticator", "api_token": "{{ config.apikey }}"},
                 "request_parameters": {"a_param": "10"},
@@ -566,13 +564,8 @@ def test_handle_429_response():
     response = _create_429_page_response({"result": [{"error": "too many requests"}], "_metadata": {"next": "next"}})
 
     # Add backoff strategy to avoid default endless backoff loop
-    TEST_READ_CONFIG["__injected_declarative_manifest"]['definitions']['retriever']['requester']['error_handler'] = {
-        "backoff_strategies": [
-            {
-                "type": "ConstantBackoffStrategy",
-                "backoff_time_in_seconds": 5
-            }
-        ]
+    TEST_READ_CONFIG["__injected_declarative_manifest"]["definitions"]["retriever"]["requester"]["error_handler"] = {
+        "backoff_strategies": [{"type": "ConstantBackoffStrategy", "backoff_time_in_seconds": 5}]
     }
 
     config = TEST_READ_CONFIG

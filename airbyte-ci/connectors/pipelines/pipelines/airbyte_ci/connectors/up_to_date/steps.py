@@ -38,7 +38,11 @@ class PoetryUpdate(Step):
     ) -> None:
         super().__init__(context)
         self.dev = dev
-        self.specified_versions = self.parse_specific_dependencies(specific_dependencies) if specific_dependencies else {}
+        self.specified_versions = (
+            self.parse_specific_dependencies(specific_dependencies)
+            if specific_dependencies
+            else {}
+        )
         self.connector_directory = connector_directory
         self.modified_files = []
 
@@ -56,38 +60,70 @@ class PoetryUpdate(Step):
         return versions
 
     async def _run(self) -> StepResult:
-        connector_directory = self.connector_directory or await self.context.get_connector_dir()
+        connector_directory = (
+            self.connector_directory or await self.context.get_connector_dir()
+        )
         if PYPROJECT_FILE_NAME not in await connector_directory.entries():
-            return StepResult(step=self, status=StepStatus.SKIPPED, stderr=f"Connector does not have a {PYPROJECT_FILE_NAME}")
+            return StepResult(
+                step=self,
+                status=StepStatus.SKIPPED,
+                stderr=f"Connector does not have a {PYPROJECT_FILE_NAME}",
+            )
 
-        base_image_name = self.context.connector.metadata["connectorBuildOptions"]["baseImage"]
-        base_container = self.dagger_client.container(platform=LOCAL_BUILD_PLATFORM).from_(base_image_name)
-        connector_container = base_container.with_mounted_directory("/connector", connector_directory).with_workdir("/connector")
-        original_poetry_lock = await connector_container.file(POETRY_LOCK_FILE_NAME).contents()
-        original_pyproject_file = await connector_container.file(PYPROJECT_FILE_NAME).contents()
+        base_image_name = self.context.connector.metadata["connectorBuildOptions"][
+            "baseImage"
+        ]
+        base_container = self.dagger_client.container(
+            platform=LOCAL_BUILD_PLATFORM
+        ).from_(base_image_name)
+        connector_container = base_container.with_mounted_directory(
+            "/connector", connector_directory
+        ).with_workdir("/connector")
+        original_poetry_lock = await connector_container.file(
+            POETRY_LOCK_FILE_NAME
+        ).contents()
+        original_pyproject_file = await connector_container.file(
+            PYPROJECT_FILE_NAME
+        ).contents()
 
         try:
             for package, version in self.specified_versions.items():
                 if not self.dev:
                     self.logger.info(f"Add {package} {version} to main dependencies")
-                    connector_container = await connector_container.with_exec(["poetry", "add", f"{package}{version}"])
+                    connector_container = await connector_container.with_exec(
+                        ["poetry", "add", f"{package}{version}"]
+                    )
                 else:
                     self.logger.info(f"Add {package} {version} to dev dependencies")
-                    connector_container = await connector_container.with_exec(["poetry", "add", f"{package}{version}", "--group=dev"])
+                    connector_container = await connector_container.with_exec(
+                        ["poetry", "add", f"{package}{version}", "--group=dev"]
+                    )
 
-            connector_container = await connector_container.with_exec(["poetry", "update"])
+            connector_container = await connector_container.with_exec(
+                ["poetry", "update"]
+            )
             self.logger.info(await connector_container.stdout())
         except dagger.ExecError as e:
             return StepResult(step=self, status=StepStatus.FAILURE, stderr=str(e))
 
         if (
-            original_poetry_lock != await connector_container.file(POETRY_LOCK_FILE_NAME).contents()
-            or original_pyproject_file != await connector_container.file(PYPROJECT_FILE_NAME).contents()
+            original_poetry_lock
+            != await connector_container.file(POETRY_LOCK_FILE_NAME).contents()
+            or original_pyproject_file
+            != await connector_container.file(PYPROJECT_FILE_NAME).contents()
         ):
             self.modified_files = [POETRY_LOCK_FILE_NAME, PYPROJECT_FILE_NAME]
-            return StepResult(step=self, status=StepStatus.SUCCESS, output=connector_container.directory("."))
+            return StepResult(
+                step=self,
+                status=StepStatus.SUCCESS,
+                output=connector_container.directory("."),
+            )
 
-        return StepResult(step=self, status=StepStatus.SKIPPED, stdout="No changes in poetry.lock or pyproject.toml")
+        return StepResult(
+            step=self,
+            status=StepStatus.SKIPPED,
+            stdout="No changes in poetry.lock or pyproject.toml",
+        )
 
 
 class DependencyUpdateType(Enum):
@@ -106,7 +142,6 @@ class DependencyUpdate:
 
 
 class GetDependencyUpdates(Step):
-
     SYFT_DOCKER_IMAGE = "anchore/syft:v1.6.0"
     context: ConnectorContext
     title: str = "Get dependency updates"
@@ -121,7 +156,10 @@ class GetDependencyUpdates(Step):
             .with_mounted_file("/config/config.json", config_file)
             .with_env_variable("DOCKER_CONFIG", "/config")
             # Syft requires access to the docker daemon. We share the host's docker socket with the Syft container.
-            .with_unix_socket("/var/run/docker.sock", self.dagger_client.host().unix_socket("/var/run/docker.sock"))
+            .with_unix_socket(
+                "/var/run/docker.sock",
+                self.dagger_client.host().unix_socket("/var/run/docker.sock"),
+            )
         )
 
     @property
@@ -131,25 +169,39 @@ class GetDependencyUpdates(Step):
 
     async def get_sbom_from_latest_image(self) -> str:
         syft_container = self.get_syft_container()
-        return await syft_container.with_exec([self.latest_connector_docker_image_address, "-o", "syft-json"]).stdout()
+        return await syft_container.with_exec(
+            [self.latest_connector_docker_image_address, "-o", "syft-json"]
+        ).stdout()
 
     async def get_sbom_from_container(self, container: dagger.Container) -> str:
-        oci_tarball_path = Path(f"/tmp/{self.context.connector.technical_name}-{self.context.connector.version}.tar")
+        oci_tarball_path = Path(
+            f"/tmp/{self.context.connector.technical_name}-{self.context.connector.version}.tar"
+        )
         await container.export(str(oci_tarball_path))
         syft_container = self.get_syft_container()
         container_sbom = await (
-            syft_container.with_mounted_file("/tmp/oci.tar", self.dagger_client.host().file(str(oci_tarball_path)))
+            syft_container.with_mounted_file(
+                "/tmp/oci.tar", self.dagger_client.host().file(str(oci_tarball_path))
+            )
             .with_exec(["/tmp/oci.tar", "-o", "syft-json"])
             .stdout()
         )
         oci_tarball_path.unlink()
         return container_sbom
 
-    def get_dependency_updates(self, raw_latest_sbom: str, raw_current_sbom: str) -> List[DependencyUpdate]:
+    def get_dependency_updates(
+        self, raw_latest_sbom: str, raw_current_sbom: str
+    ) -> List[DependencyUpdate]:
         latest_sbom = json.loads(raw_latest_sbom)
         current_sbom = json.loads(raw_current_sbom)
-        latest_packages = {(dep["type"], dep["name"]): dep["version"] for dep in latest_sbom["artifacts"]}
-        current_packages = {(dep["type"], dep["name"]): dep["version"] for dep in current_sbom["artifacts"]}
+        latest_packages = {
+            (dep["type"], dep["name"]): dep["version"]
+            for dep in latest_sbom["artifacts"]
+        }
+        current_packages = {
+            (dep["type"], dep["name"]): dep["version"]
+            for dep in current_sbom["artifacts"]
+        }
         diff = DeepDiff(latest_packages, current_packages)
         dependency_updates = []
         diff_type_to_update_type = [
@@ -162,7 +214,13 @@ class GetDependencyUpdates(Step):
                 package_type, package_name = change.get_root_key()
                 previous_version, new_version = change.t1, change.t2
                 dependency_updates.append(
-                    DependencyUpdate(package_type, package_name, update_type, previous_version=previous_version, new_version=new_version)
+                    DependencyUpdate(
+                        package_type,
+                        package_name,
+                        update_type,
+                        previous_version=previous_version,
+                        new_version=new_version,
+                    )
                 )
         return dependency_updates
 
@@ -170,4 +228,6 @@ class GetDependencyUpdates(Step):
         latest_sbom = await self.get_sbom_from_latest_image()
         current_sbom = await self.get_sbom_from_container(target_connector_container)
         dependency_updates = self.get_dependency_updates(latest_sbom, current_sbom)
-        return StepResult(step=self, status=StepStatus.SUCCESS, output=dependency_updates)
+        return StepResult(
+            step=self, status=StepStatus.SUCCESS, output=dependency_updates
+        )

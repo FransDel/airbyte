@@ -190,7 +190,6 @@ def test_path(config, stream, date, slice, expected_path):
 
 
 def test_campaigns_metrics_parse_response():
-
     stream = CampaignsMetrics(authenticator=None, start_date="2019-10-10T00:00:00")
     with responses.RequestsMock() as rsps:
         rsps.add(
