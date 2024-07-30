@@ -82,7 +82,7 @@ class AttributionReport(AmazonAdsStream):
     def http_method(self) -> str:
         return "POST"
 
-    def path(self, **kvargs) -> str:
+    def path(self, **kwargs) -> str:
         return "/attribution/report"
 
     def get_json_schema(self):
@@ -141,7 +141,6 @@ class AttributionReport(AmazonAdsStream):
         stream_slice: Mapping[str, Any] = None,
         next_page_token: Mapping[str, Any] = None,
     ) -> Optional[Mapping]:
-
         body = {
             "reportType": self.report_type,
             "count": self.page_size,

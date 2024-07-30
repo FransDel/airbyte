@@ -128,7 +128,6 @@ def test_attribution_report_with_pagination(mocker, config, profiles_response, a
 
 @freeze_time("2022-05-15 12:00:00")
 def test_attribution_report_slices(config):
-
     profiles = [
         Profile(profileId=1, timezone="America/Los_Angeles", accountInfo=AccountInfo(id="1", type="seller", marketplaceStringId="")),
         Profile(profileId=2, timezone="America/Los_Angeles", accountInfo=AccountInfo(id="1", type="seller", marketplaceStringId="")),
@@ -138,22 +137,22 @@ def test_attribution_report_slices(config):
     slices = list(stream.stream_slices(sync_mode=SyncMode.full_refresh))
 
     assert slices == [
-        {'profileId': 1, 'startDate': '20220514', 'endDate': '20220515'},
-        {'profileId': 2, 'startDate': '20220514', 'endDate': '20220515'}
+        {"profileId": 1, "startDate": "20220514", "endDate": "20220515"},
+        {"profileId": 2, "startDate": "20220514", "endDate": "20220515"},
     ]
 
     config["start_date"] = pendulum.from_format("2022-05-01", "YYYY-MM-DD").date()
     stream = AttributionReportProducts(config, profiles=profiles)
     slices = list(stream.stream_slices(sync_mode=SyncMode.full_refresh))
     assert slices == [
-        {'profileId': 1, 'startDate': '20220501', 'endDate': '20220515'},
-        {'profileId': 2, 'startDate': '20220501', 'endDate': '20220515'}
+        {"profileId": 1, "startDate": "20220501", "endDate": "20220515"},
+        {"profileId": 2, "startDate": "20220501", "endDate": "20220515"},
     ]
 
     config["start_date"] = pendulum.from_format("2022-01-01", "YYYY-MM-DD").date()
     stream = AttributionReportProducts(config, profiles=profiles)
     slices = list(stream.stream_slices(sync_mode=SyncMode.full_refresh))
     assert slices == [
-        {'profileId': 1, 'startDate': '20220214', 'endDate': '20220515'},
-        {'profileId': 2, 'startDate': '20220214', 'endDate': '20220515'}
+        {"profileId": 1, "startDate": "20220214", "endDate": "20220515"},
+        {"profileId": 2, "startDate": "20220214", "endDate": "20220515"},
     ]

@@ -2,6 +2,7 @@
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
 
+import datetime
 import gzip
 import io
 import json
@@ -12,6 +13,7 @@ from typing import IO, Any, Iterable, List, Mapping, MutableMapping, Optional
 import pendulum
 import requests
 from airbyte_cdk.models import SyncMode
+from airbyte_cdk.sources.streams.core import CheckpointMixin
 from airbyte_cdk.sources.streams.http import HttpStream
 
 LOGGER = logging.getLogger("airbyte")
@@ -44,7 +46,7 @@ def error_msg_from_status(status: int = None):
             LOGGER.error(f"Unknown error occured: code {status}")
 
 
-class Events(HttpStream):
+class Events(HttpStream, CheckpointMixin):
     api_version = 2
     base_params = {}
     cursor_field = "server_upload_time"
@@ -60,6 +62,8 @@ class Events(HttpStream):
         self.event_time_interval = event_time_interval
         self._start_date = pendulum.parse(start_date) if isinstance(start_date, str) else start_date
         self.date_time_fields = self._get_date_time_items_from_schema()
+        if not hasattr(self, "_state"):
+            self._state = {}
         super().__init__(**kwargs)
 
     @property
@@ -71,7 +75,15 @@ class Events(HttpStream):
     def time_interval(self) -> dict:
         return {self.event_time_interval.get("size_unit"): self.event_time_interval.get("size")}
 
-    def get_updated_state(self, current_stream_state: MutableMapping[str, Any], latest_record: Mapping[str, Any]) -> Mapping[str, Any]:
+    @property
+    def state(self) -> Mapping[str, Any]:
+        return self._state
+
+    @state.setter
+    def state(self, value: Mapping[str, Any]) -> Mapping[str, Any]:
+        self._state = value
+
+    def _get_updated_state(self, current_stream_state: MutableMapping[str, Any], latest_record: Mapping[str, Any]) -> Mapping[str, Any]:
         # save state value in source native format
         if self.compare_date_template:
             latest_state = pendulum.parse(latest_record[self.cursor_field]).strftime(self.compare_date_template)
@@ -99,8 +111,21 @@ class Events(HttpStream):
                 record[item] = pendulum.parse(record[item]).to_rfc3339_string()
         return record
 
+    def get_most_recent_cursor(self, stream_state: Mapping[str, Any] = None) -> datetime.datetime:
+        """
+        Use `start_time` instead of `cursor` in the case of more recent.
+        This can happen whenever a user simply finds that they are syncing to much data and would like to change `start_time` to be more recent.
+        See: https://github.com/airbytehq/airbyte/issues/25367 for more details
+        """
+        cursor_date = (
+            pendulum.parse(stream_state[self.cursor_field])
+            if stream_state and self.cursor_field in stream_state
+            else datetime.datetime.min.replace(tzinfo=datetime.timezone.utc)
+        )
+        return max(self._start_date, cursor_date)
+
     def parse_response(self, response: requests.Response, stream_state: Mapping[str, Any] = None, **kwargs) -> Iterable[Mapping]:
-        state_value = stream_state[self.cursor_field] if stream_state else self._start_date.strftime(self.compare_date_template)
+        most_recent_cursor = self.get_most_recent_cursor(stream_state).strftime(self.compare_date_template)
         try:
             zip_file = zipfile.ZipFile(io.BytesIO(response.content))
         except zipfile.BadZipFile as e:
@@ -114,7 +139,7 @@ class Events(HttpStream):
         for gzip_filename in zip_file.namelist():
             with zip_file.open(gzip_filename) as file:
                 for record in self._parse_zip_file(file):
-                    if record[self.cursor_field] >= state_value:
+                    if record[self.cursor_field] >= most_recent_cursor:
                         yield self._date_time_to_rfc3339(record)  # transform all `date-time` to RFC3339
 
     def _parse_zip_file(self, zip_file: IO[bytes]) -> Iterable[MutableMapping]:
@@ -124,7 +149,7 @@ class Events(HttpStream):
 
     def stream_slices(self, stream_state: Mapping[str, Any] = None, **kwargs) -> Iterable[Optional[Mapping[str, Any]]]:
         slices = []
-        start = pendulum.parse(stream_state.get(self.cursor_field)) if stream_state else self._start_date
+        start = self.get_most_recent_cursor(stream_state=stream_state)
         end = pendulum.now()
         if start > end:
             self.logger.info("The data cannot be requested in the future. Skipping stream.")
@@ -158,8 +183,9 @@ class Events(HttpStream):
         # https://developers.amplitude.com/docs/export-api#status-codes
         try:
             self.logger.info(f"Fetching {self.name} time range: {start.strftime('%Y-%m-%dT%H')} - {end.strftime('%Y-%m-%dT%H')}")
-            records = super().read_records(sync_mode, cursor_field, stream_slice, stream_state)
-            yield from records
+            for record in super().read_records(sync_mode, cursor_field, stream_slice, stream_state):
+                self.state = self._get_updated_state(self.state, record)
+                yield record
         except requests.exceptions.HTTPError as error:
             status = error.response.status_code
             if status in HTTP_ERROR_CODES.keys():

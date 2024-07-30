@@ -7,6 +7,7 @@
 # of airbyte-cdk rather than a standalone package.
 from .airbyte_protocol import (
     AdvancedAuth,
+    AirbyteAnalyticsTraceMessage,
     AirbyteCatalog,
     AirbyteConnectionStatus,
     AirbyteControlConnectorConfigMessage,
@@ -25,6 +26,8 @@ from .airbyte_protocol import (
     AirbyteStreamState,
     AirbyteStreamStatus,
     AirbyteStreamStatusTraceMessage,
+    AirbyteStreamStatusReason,
+    AirbyteStreamStatusReasonType,
     AirbyteTraceMessage,
     AuthFlowType,
     ConfiguredAirbyteCatalog,
@@ -47,10 +50,8 @@ from .well_known_types import (
     Boolean,
     Date,
     Integer,
-    IntegerEnum,
     Model,
     Number,
-    NumberEnum,
     String,
     TimestampWithoutTimezone,
     TimestampWithTimezone,
